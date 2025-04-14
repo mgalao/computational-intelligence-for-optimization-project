@@ -1,0 +1,13 @@
+import pandas as pd
+import os
+
+# Get the directory of the current script
+script_directory = os.path.dirname(os.path.abspath(__file__))
+
+# Construct the paths to the CSV files
+artists_path = os.path.join(script_directory, "artists.csv")
+conflicts_path = os.path.join(script_directory, "conflicts.csv")
+
+# Read the CSV files
+artists = pd.read_csv(artists_path)
+conflicts_matrix = pd.read_csv(conflicts_path)

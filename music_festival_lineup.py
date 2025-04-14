@@ -1,0 +1,13 @@
+from evolution.entities import Population
+# from evolution.selection import ...
+# from evolution.crossover import ...
+# from evolution.mutation import ...
+
+# ---------------------- Fixed Hyperparameters ---------------------- #
+
+
+
+
+
+def GA(selection, crossover, mutation, elitism):
+    ...

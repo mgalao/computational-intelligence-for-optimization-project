@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 import random
 from copy import deepcopy
 from data.import_data import artists, conflicts_matrix
+from itertools import combinations
 
 class Solution(ABC):
     """
@@ -136,10 +137,71 @@ class MLFSolution(Solution):
         return (prime_slot_popularity + genre_diversity - conflict_penalty) / 3 # Normalize to [0, 1]
 
     def _get_prime_slot_popularity(self, artist_info):
-        ...
+        prime_slot_indices = []
+        for stage in range(self.num_stages):
+            prime_slot_indices.append(stage * self.num_slots_per_stage + self.num_slots_per_stage-1) # stage * number_slots_per_stage is the first slot in each stage. we have to add the other slots without forgetting the 0 index
+        
+        prime_slot_popularity = 0
+        for index in prime_slot_indices:
+            prime_slot_popularity += artist_info[self.repr[index]]['popularity']
+
+        popularities = [artist['popularity'] for artist in artist_info.values()]
+        top_popularities = sorted(popularities, reverse=True)[:self.num_stages]
+
+        maximum_possibile_popularity = 0
+        for popularity in top_popularities:
+            maximum_possibile_popularity += popularity
+        
+        normalized_prime_slot_popularity = prime_slot_popularity/maximum_possibile_popularity
+
+        return normalized_prime_slot_popularity
+            
 
     def _get_genre_diversity(self, artist_info):
-        ...
+        possible_genres = []
+        for artist in artist_info.values():
+            if artist['genre'] not in possible_genres: possible_genres.append(artist['genre'])
+        num_possible_genres = len(possible_genres)
 
-    def _get_conflict_penalty(self):
-        ...
+        maximum_genre_diversity = min(self.num_stages, num_possible_genres)
+
+        genre_diversity_per_slot = []
+        for slot in range(self.num_slots_per_stage):
+            genres = []
+            for stage in range(self.num_stages):
+                idx = stage * self.num_slots_per_stage + slot
+                genres.append(artist_info[self.repr[idx]]['genre'])
+            
+            genre_diversity_per_slot.append(len(set(genres)) / maximum_genre_diversity)
+        
+        avg_genre_diversity = sum(genre_diversity_per_slot)/ len(maximum_genre_diversity)
+        return avg_genre_diversity
+
+
+    def _get_conflict_penalty(self, artist_info, conflicts_matrix):
+        conflicts = []
+        for slot in range(self.num_slots_per_stage):
+            conflicts_per_slot = []
+            artists = []
+            for stage in range(self.num_stages):
+                idx = stage * self.num_slots_per_stage + slot
+                artists.append(self.repr[idx])
+            for artist1, artist2 in combinations(artists,2):
+                conflicts_per_slot.append(conflicts_matrix[artist1][artist2])
+            
+            conflicts.append(sum(conflicts_per_slot))
+
+        number_conflicts_per_slot = (self.num_stages * (self.num_stages -1))/2 
+        maximum_possible_conflict = (1*number_conflicts_per_slot) * self.num_slots_per_stage
+
+        normalized_conflict = sum(conflicts) / maximum_possible_conflict
+
+        return normalized_conflict
+
+
+        
+
+
+
+
+                

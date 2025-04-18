@@ -1,7 +1,7 @@
 import random
 from copy import deepcopy
-
-from library.solution import Solution
+from evolution.solution import Solution
+from evolution.solution import MLFSolution
 
 def fitness_proportionate_selection(population: list[Solution], maximization: bool):
     total_fitness = sum([ind.fitness() for ind in population])

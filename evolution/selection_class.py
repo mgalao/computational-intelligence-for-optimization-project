@@ -22,3 +22,5 @@ def fitness_proportionate_selection(population: list[Solution], maximization: bo
         box_boundary += fitness_values[ind_idx]
         if random_nr <= box_boundary:
             return deepcopy(ind)
+
+def 

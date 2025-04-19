@@ -47,7 +47,7 @@ class Solution(ABC):
         pass
 
 
-class MLFSolution(Solution):
+class Individual(Solution):
     """
     Concrete implementation of a Solution for the Music Lineup Festival (MLF) problem.
     Represents a schedule assigning each artist to a unique stage and time slot.
@@ -197,6 +197,52 @@ class MLFSolution(Solution):
         normalized_conflict = sum(conflicts) / maximum_possible_conflict
 
         return normalized_conflict
+    
+class Population:
+    def __init__(self, population_size):
+        self.population_size = population_size
+        self.individuals = []
+        unique_reprs = set()
+
+        while len(self.individuals) < population_size:
+            indiv = Individual()
+            repr_as_tuple = tuple(indiv.repr)
+
+            if repr_as_tuple not in unique_reprs:
+                self.individuals.append(indiv)
+                unique_reprs.add(repr_as_tuple)
+
+    def __pop_size__(self): return self.population_size
+
+    def __len__(self): return len(self.individuals)
+
+    def population_representation(self): return "\n".join([f"Individual {i}: Fitness={indiv.fitness()} - Repr={indiv.repr}" for i, indiv in enumerate(self.individuals)])
+
+    def best_individual(self):
+        best_indiv = None
+        best_fitness = float('-inf') 
+
+        for indiv in self.individuals:
+            if indiv.fitness() > best_fitness:
+                best_fitness = indiv.fitness()
+                best_indiv = indiv 
+
+        return best_indiv, best_fitness
+    
+    def best_individuals(self, n=10):
+        sorted_individuals = sorted(self.individuals, key=lambda indiv: indiv.fitness(), reverse=True)
+        best_n = sorted_individuals[:n]
+
+        return [(indiv, indiv.fitness()) for indiv in best_n]
+
+
+
+
+
+
+    
+
+
 
 
         

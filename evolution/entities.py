@@ -12,7 +12,7 @@ artists = import_data.artists
 conflicts_matrix = import_data.conflicts_matrix
 
 class Individual:
-    ...
+     
 
 
 class Population:

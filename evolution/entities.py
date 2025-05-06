@@ -1,15 +1,16 @@
 """
-This module defines the Solution base class and its concrete implementation MLFSolution,
-which represents a valid lineup for the problem. It includes methods for initialization, validation,
-random generation, and fitness evaluation based on prime slot popularity, genre diversity, and conflict penalty.
+This module defines the base class 'Solution' and its concrete implementation 'Individual'.
+It includes functionality for generating, validating, and evaluating lineup solutions based on
+prime slot popularity, genre diversity, and conflict penalties.
+A 'Population' class is also defined to manage a collection of unique individuals.
 """
 
 from abc import ABC, abstractmethod
 import random
 from copy import deepcopy
 from data.import_data import artists, conflicts_matrix
-from itertools import combinations
 import numpy as np
+from itertools import combinations
 
 class Solution(ABC):
     """
@@ -19,7 +20,8 @@ class Solution(ABC):
 
     def __init__(self, repr=None):
         """
-        Initializes a Solution. If no representation is provided, a random one is generated.
+        Initializes a Solution. If no representation is provided,
+        a random one is generated.
         """
         if repr is None:
             repr = self.random_initial_representation()
@@ -57,14 +59,24 @@ class Individual(Solution):
         - Genre Diversity
         - Conflict Penalty
     """
-    
+
     def __repr__(self):
-        return "\n".join(" ".join(f"{id:2}" for id in row) for row in self.repr)
+        """
+        Returns a string representation of the individual as a slot x stage matrix
+        and its fitness score.
+        """
     
+        # Create a string representation of the matrix
+        matrix_str = "\n".join(
+            [f"Slot {i+1}: {list(row)}" for i, row in enumerate(self.repr)]
+        )
+
+        return f"Fitness: {self.fitness():.4f}\n{matrix_str}"
+            
     def __init__(self, repr=None, num_stages=5, num_slots_per_stage=7):
         """
-        Initializes an MLF solution with given number of stages and slots.
-        Validates the provided representation, if any.
+        Initializes an Individual with a representation (if provided)
+        and validates it.
         """
 
         # Number of stages and slots per stage
@@ -86,6 +98,8 @@ class Individual(Solution):
             - Has exactly one unique artist per slot
             - Contains valid artist IDs
         """
+
+        # Flatten the representation
         flat = [artist for row in repr for artist in row]
 
         # Check if representation is a matrix
@@ -100,6 +114,7 @@ class Individual(Solution):
         if not all(isinstance(artist_id, int) for artist_id in flat):
             raise TypeError("All elements in the representation must be integers.")
         
+        # Check if each artist is assigned exactly once
         if len(set(flat)) != len(flat):
             raise ValueError("Each artist must be assigned exactly once.")
 
@@ -113,8 +128,12 @@ class Individual(Solution):
         Generates a valid random lineup by shuffling all artist IDs.
         Each artist is scheduled once, across all stages and slots.
         """
+
+        # Shuffle artist IDs
         artist_ids = list(artists.index)
         random.shuffle(artist_ids)
+
+        # Create a matrix of size (num_slots_per_stage x num_stages)
         matrix = [
             artist_ids[i*self.num_stages: (i+1)*self.num_stages] for i in range(self.num_slots_per_stage)
             ]
@@ -136,122 +155,167 @@ class Individual(Solution):
             for idx, row in artists.iterrows()
         }
 
-        # Calculate individual components of the fitness scor
+        # Calculate individual components of the fitness score
         prime_slot_popularity = self.get_prime_slot_popularity(artist_info)
         genre_diversity = self.get_genre_diversity(artist_info)
-        conflict_penalty = self.get_conflict_penalty(artist_info, conflicts_matrix)
+        conflict_penalty = self.get_conflict_penalty(conflicts_matrix)
 
         # Combine components into a final fitness score
         return (prime_slot_popularity + genre_diversity - conflict_penalty) / 3 # Normalize to [0, 1]
 
     def get_prime_slot_popularity(self, artist_info):
+        """
+        Calculates the prime slot popularity of artists in the lineup.
+        The prime slot is the last slot of each stage.
+        The popularity is normalized by the maximum possible popularity.
+        The maximum possible popularity is the sum of the top N popularities,
+        where N is the number of stages.
+        """
+        
+        # Get the last slot of each stage
         prime_slot_artists = self.repr[-1]
+
+        # Calculate the total popularity of artists in prime slots
         prime_slot_popularity = sum(artist_info[artist]['popularity'] for artist in prime_slot_artists)
 
+        # Get the top popularities
         popularities = [artist['popularity'] for artist in artist_info.values()]
         top_popularities = sorted(popularities, reverse=True)[:self.num_stages]
 
-        maximum_possibile_popularity = 0
-        for popularity in top_popularities:
-            maximum_possibile_popularity += popularity
+        # Calculate the maximum possible popularity
+        maximum_possible_popularity = sum(top_popularities)
         
-        normalized_prime_slot_popularity = prime_slot_popularity/maximum_possibile_popularity
+        # Normalize the prime slot popularity
+        normalized_prime_slot_popularity = prime_slot_popularity / maximum_possible_popularity
 
         return normalized_prime_slot_popularity
             
     def get_genre_diversity(self, artist_info):
+        """
+        Calculates the genre diversity of the artists in the lineup.
+        The genre diversity is the number of unique genres in the lineup,
+        normalized by the maximum possible genre diversity.
+        The maximum possible genre diversity is the minimum of the number of stages
+        and the number of unique genres in the dataset.
+        """
+
+        # Get the genre diversity of the artists in the lineup
         possible_genres = []
         for artist in artist_info.values():
-            if artist['genre'] not in possible_genres: possible_genres.append(artist['genre'])
+            if artist['genre'] not in possible_genres:
+                possible_genres.append(artist['genre'])
         num_possible_genres = len(possible_genres)
 
+        # Calculate the maximum possible genre diversity
         maximum_genre_diversity = min(self.num_stages, num_possible_genres)
 
+        # Calculate the genre diversity for each slot
         genre_diversity_per_slot = []
         for slot in range(self.num_slots_per_stage):
             genres = []
             for stage in range(self.num_stages):
-                idx = stage * self.num_slots_per_stage + slot
-                genres.append(artist_info[self.repr[slot][stage]]['genre'])
+                idx = self.repr[slot][stage]
+                genres.append(artist_info[idx]['genre'])
             
+            # Calculate the genre diversity for this slot (normalized)
             genre_diversity_per_slot.append(len(set(genres)) / maximum_genre_diversity)
         
+        # Calculate the average genre diversity across all slots
         avg_genre_diversity = sum(genre_diversity_per_slot) / len(genre_diversity_per_slot)
+
         return avg_genre_diversity
     
-    def get_conflict_penalty(self, artist_info, conflicts_matrix):
+    def get_conflict_penalty(self, conflicts_matrix):
+        """
+        Calculates the conflict penalty for the lineup.
+        The penalty is based on the number of conflicts between artists in the same slot.
+        The penalty is normalized by the maximum possible conflict.
+        The maximum possible conflict is the sum of the top N conflicts,
+        where N is the number of slots in a stage.
+        """
+
+        # Calculate the number of conflicts for each slot
+        number_conflicts_per_slot = int(self.num_stages * (self.num_stages-1) / 2)
+
+        # Create a mask to get the upper triangle of the conflicts matrix
+        mask = np.triu(np.ones(conflicts_matrix.shape, dtype=bool), k=1)
+        total_conflicts = conflicts_matrix[mask].tolist()
+
+        # Get the top conflicts
+        top_conflicts = sorted(total_conflicts, reverse=True)[:number_conflicts_per_slot]
+
+        # Calculate the maximum possible conflict
+        maximum_possible_conflict = sum(top_conflicts)
+
+        # Calculate the conflict penalty for each slot
         conflicts = []
         for slot in range(self.num_slots_per_stage):
             conflicts_per_slot = []
-            artists = []
+            artists_idx = []
+
+            # Get the artists indexes for this slot
             for stage in range(self.num_stages):
-                idx = stage * self.num_slots_per_stage + slot
-                artists.append(self.repr[slot][stage])
-            for artist1, artist2 in combinations(artists,2):
-                conflicts_per_slot.append(conflicts_matrix[artist1][artist2])
+                idx = self.repr[slot][stage]
+                artists_idx.append(idx)
             
+            # Calculate the conflicts for this slot
+            for artist1_idx, artist2_idx in combinations(artists_idx, 2):
+                conflicts_per_slot.append(conflicts_matrix[artist1_idx][artist2_idx])
+            
+            # Append the conflict penalty for this slot
             conflicts.append(sum(conflicts_per_slot))
 
-        number_conflicts_per_slot = (self.num_stages * (self.num_stages -1))/2 
-        maximum_possible_conflict = (1*number_conflicts_per_slot) * self.num_slots_per_stage
-
+        # Calculate the normalized conflict penalty
         normalized_conflict = sum(conflicts) / maximum_possible_conflict
 
         return normalized_conflict
     
 class Population:
     def __repr__(self):
-        return self.population_representation()
+        """
+        Returns a string representation of the population.
+        Each individual is represented as a slot x stage matrix.
+        """      
+        return "\n\n".join([f"Individual {i}:\n{indiv}" for i, indiv in enumerate(self.individuals)])
 
     def __init__(self, population_size):
-        self.population_size = population_size
-        self.individuals = []
-        unique_reprs = set()
+        """
+        Initializes a population of unique individuals.
+        Each individual is represented as a slot x stage matrix.
+        The population is generated by creating random individuals
+        until the desired population size is reached.
+        """
 
-        while len(self.individuals) < population_size:
+        # Set the population size and initialize the list of individuals
+        self.population_size = population_size
+        individuals = []
+        unique_reprs = set() # To check for uniqueness
+
+        # Generate unique individuals until the population size is reached
+        while len(individuals) < population_size:
+            # Create a new individual
             indiv = Individual()
+
+            # Store the representation as a tuple of tuples (to check for uniqueness)
             repr_as_tuple =  tuple(tuple(row) for row in deepcopy(indiv.repr))
 
+            # If the representation is unique, add the individual to the population
             if repr_as_tuple not in unique_reprs:
-                self.individuals.append(indiv)
+                individuals.append(indiv)
                 unique_reprs.add(repr_as_tuple)
 
-    def __pop_size__(self): return self.population_size
-
-    def __len__(self): return len(self.individuals)
-
-    def population_representation(self): return "\n".join([f"Individual {i}: Fitness={indiv.fitness()} - Repr={indiv.repr}" for i, indiv in enumerate(self.individuals)])
-
-    def best_individual(self):
-        best_indiv = None
-        best_fitness = float('-inf') 
-
-        for indiv in self.individuals:
-            if indiv.fitness() > best_fitness:
-                best_fitness = indiv.fitness()
-                best_indiv = indiv 
-
-        return best_indiv, best_fitness
+        self.individuals = individuals
     
     def best_individuals(self, n=10):
+        """
+        Returns the n best individuals in the population
+        based on highest fitness score.
+        """
+        
+        # Sort the individuals by fitness in descending order
         sorted_individuals = sorted(self.individuals, key=lambda indiv: indiv.fitness(), reverse=True)
+
+        # Get the top n best individuals    
         best_n = sorted_individuals[:n]
 
-        return [(indiv, indiv.fitness()) for indiv in best_n]
-
-
-
-
-
-
-    
-
-
-
-
-        
-
-
-
-
-                
+        return best_n

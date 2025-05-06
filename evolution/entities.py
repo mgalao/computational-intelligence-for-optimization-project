@@ -9,6 +9,7 @@ import random
 from copy import deepcopy
 from data.import_data import artists, conflicts_matrix
 from itertools import combinations
+import numpy as np
 
 class Solution(ABC):
     """
@@ -56,7 +57,10 @@ class Individual(Solution):
         - Genre Diversity
         - Conflict Penalty
     """
-
+    
+    def __repr__(self):
+        return "\n".join(" ".join(f"{id:2}" for id in row) for row in self.repr)
+    
     def __init__(self, repr=None, num_stages=5, num_slots_per_stage=7):
         """
         Initializes an MLF solution with given number of stages and slots.
@@ -74,7 +78,7 @@ class Individual(Solution):
 
         # If no representation is provided, generate a random one
         super().__init__(repr=repr)
-
+    
     def _validate_repr(self, repr):
         """
         Validates that the representation:
@@ -82,26 +86,26 @@ class Individual(Solution):
             - Has exactly one unique artist per slot
             - Contains valid artist IDs
         """
+        flat = [artist for row in repr for artist in row]
 
-        # Check if representation is a list
-        if not isinstance(repr, list):
-            raise TypeError("Representation must be a list.")
-        
+        # Check if representation is a matrix
+        if not (isinstance(repr, list) and all(isinstance(row, list) for row in repr)):
+            raise TypeError("Representation must be a matrix (list of lists).")
+
         # Check if representation has the correct number of slots
-        if len(repr) != self.num_slots:
-            raise ValueError(f"Representation must contain {self.num_slots} elements.")
+        if len(repr) != self.num_slots_per_stage:
+            raise ValueError(f"Representation must contain {self. num_slots_per_stage} slots.")
         
         # Check if all elements are integers (artist IDs)
-        if not all(isinstance(artist_id, int) for artist_id in repr):
+        if not all(isinstance(artist_id, int) for artist_id in flat):
             raise TypeError("All elements in the representation must be integers.")
         
-        # Check if each artist ID is unique
-        if len(set(repr)) != len(repr):
+        if len(set(flat)) != len(flat):
             raise ValueError("Each artist must be assigned exactly once.")
 
         # Check if all artist IDs are valid
         valid_ids = set(artists['artist_id'])
-        if not all(artist_id in valid_ids for artist_id in repr):
+        if not all(artist_id in valid_ids for artist_id in flat):
             raise ValueError("All artist IDs must exist in the dataset.")
     
     def random_initial_representation(self):
@@ -109,9 +113,13 @@ class Individual(Solution):
         Generates a valid random lineup by shuffling all artist IDs.
         Each artist is scheduled once, across all stages and slots.
         """
-        artist_ids = list(artists['artist_id'])
+        artist_ids = list(artists.index)
         random.shuffle(artist_ids)
-        return artist_ids
+        matrix = [
+            artist_ids[i*self.num_stages: (i+1)*self.num_stages] for i in range(self.num_slots_per_stage)
+            ]
+
+        return matrix
 
     def fitness(self):
         """
@@ -124,26 +132,21 @@ class Individual(Solution):
 
         # Create a dictionary mapping artist IDs to their popularity and genre
         artist_info = {
-            row['artist_id']: {'popularity': row['popularity'], 'genre': row['genre']}
-            for _, row in artists.iterrows()
+            idx: {'popularity': row['popularity'], 'genre': row['genre']}
+            for idx, row in artists.iterrows()
         }
 
-        # Calculate individual components of the fitness score
-        prime_slot_popularity = self._get_prime_slot_popularity(artist_info)
-        genre_diversity = self._get_genre_diversity(artist_info)
-        conflict_penalty = self._get_conflict_penalty()
+        # Calculate individual components of the fitness scor
+        prime_slot_popularity = self.get_prime_slot_popularity(artist_info)
+        genre_diversity = self.get_genre_diversity(artist_info)
+        conflict_penalty = self.get_conflict_penalty(artist_info, conflicts_matrix)
 
         # Combine components into a final fitness score
         return (prime_slot_popularity + genre_diversity - conflict_penalty) / 3 # Normalize to [0, 1]
 
-    def _get_prime_slot_popularity(self, artist_info):
-        prime_slot_indices = []
-        for stage in range(self.num_stages):
-            prime_slot_indices.append(stage * self.num_slots_per_stage + self.num_slots_per_stage-1) # stage * number_slots_per_stage is the first slot in each stage. we have to add the other slots without forgetting the 0 index
-        
-        prime_slot_popularity = 0
-        for index in prime_slot_indices:
-            prime_slot_popularity += artist_info[self.repr[index]]['popularity']
+    def get_prime_slot_popularity(self, artist_info):
+        prime_slot_artists = self.repr[-1]
+        prime_slot_popularity = sum(artist_info[artist]['popularity'] for artist in prime_slot_artists)
 
         popularities = [artist['popularity'] for artist in artist_info.values()]
         top_popularities = sorted(popularities, reverse=True)[:self.num_stages]
@@ -156,8 +159,7 @@ class Individual(Solution):
 
         return normalized_prime_slot_popularity
             
-
-    def _get_genre_diversity(self, artist_info):
+    def get_genre_diversity(self, artist_info):
         possible_genres = []
         for artist in artist_info.values():
             if artist['genre'] not in possible_genres: possible_genres.append(artist['genre'])
@@ -170,22 +172,21 @@ class Individual(Solution):
             genres = []
             for stage in range(self.num_stages):
                 idx = stage * self.num_slots_per_stage + slot
-                genres.append(artist_info[self.repr[idx]]['genre'])
+                genres.append(artist_info[self.repr[slot][stage]]['genre'])
             
             genre_diversity_per_slot.append(len(set(genres)) / maximum_genre_diversity)
         
-        avg_genre_diversity = sum(genre_diversity_per_slot)/ len(maximum_genre_diversity)
+        avg_genre_diversity = sum(genre_diversity_per_slot) / len(genre_diversity_per_slot)
         return avg_genre_diversity
-
-
-    def _get_conflict_penalty(self, artist_info, conflicts_matrix):
+    
+    def get_conflict_penalty(self, artist_info, conflicts_matrix):
         conflicts = []
         for slot in range(self.num_slots_per_stage):
             conflicts_per_slot = []
             artists = []
             for stage in range(self.num_stages):
                 idx = stage * self.num_slots_per_stage + slot
-                artists.append(self.repr[idx])
+                artists.append(self.repr[slot][stage])
             for artist1, artist2 in combinations(artists,2):
                 conflicts_per_slot.append(conflicts_matrix[artist1][artist2])
             
@@ -199,6 +200,9 @@ class Individual(Solution):
         return normalized_conflict
     
 class Population:
+    def __repr__(self):
+        return self.population_representation()
+
     def __init__(self, population_size):
         self.population_size = population_size
         self.individuals = []
@@ -206,7 +210,8 @@ class Population:
 
         while len(self.individuals) < population_size:
             indiv = Individual()
-            repr_as_tuple = tuple(indiv.repr)
+            repr_as_tuple =  tuple(tuple(row) for row in deepcopy(indiv.repr))
+
 
             if repr_as_tuple not in unique_reprs:
                 self.individuals.append(indiv)

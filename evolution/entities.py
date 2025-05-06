@@ -212,7 +212,6 @@ class Population:
             indiv = Individual()
             repr_as_tuple =  tuple(tuple(row) for row in deepcopy(indiv.repr))
 
-
             if repr_as_tuple not in unique_reprs:
                 self.individuals.append(indiv)
                 unique_reprs.add(repr_as_tuple)

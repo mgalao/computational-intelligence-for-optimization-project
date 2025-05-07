@@ -119,7 +119,8 @@ class Individual(Solution):
             raise ValueError("Each artist must be assigned exactly once.")
 
         # Check if all artist IDs are valid
-        valid_ids = set(artists['artist_id'])
+        # valid_ids = set(artists['artist_id'])
+        valid_ids = set(artists.index)
         if not all(artist_id in valid_ids for artist_id in flat):
             raise ValueError("All artist IDs must exist in the dataset.")
     
@@ -269,6 +270,62 @@ class Individual(Solution):
         normalized_conflict = sum(conflicts) / maximum_possible_conflict
 
         return normalized_conflict
+    
+    def get_slot_fitness(self, slot_idx):
+        """
+        Computes the fitness of a single slot (row) by combining genre diversity and conflict penalty 
+        Note: Prime slot popularity is excluded, since it applies only to the last slot globally.
+
+        This is useful for local evaluation during crossover strategies (EBC).
+        
+        Args:
+            slot_idx (int): Index of the slot to evaluate.
+
+        Returns:
+            float: Normalized fitness score for the slot.
+        """
+
+        # artist info
+        artist_info = {
+            idx: {'popularity': row['popularity'], 'genre': row['genre']}
+            for idx, row in artists.iterrows()
+        }
+
+        slot_artists = self.repr[slot_idx]
+        genres = [artist_info[artist]['genre'] for artist in slot_artists]
+        num_unique_genres = len(set(genres))
+
+        # Calculate maximum possible genre diversity
+        all_genres = set(artists['genre'])
+        max_genre_diversity = min(self.num_stages, len(all_genres))
+        normalized_genre_diversity = num_unique_genres / max_genre_diversity
+
+        # Conflict penalty
+        number_conflict = int(self.num_stages * (self.num_stages - 1) / 2)
+        mask = np.triu(np.ones(conflicts_matrix.shape, dtype=bool), k=1)
+        total_conflicts = conflicts_matrix[mask].tolist()
+        top_conflicts = sorted(total_conflicts, reverse=True)[:number_conflict]
+        maximum_possible_conflict = sum(sorted(total_conflicts, reverse=True)[:number_conflict])
+
+        conflicts = []
+        artists_idx = []
+        
+        # Get the artists indexes for this slot
+        for stage in range(self.num_stages):
+            idx = self.repr[slot_idx][stage]
+            artists_idx.append(idx)
+            
+        # Calculate the conflicts for this slot
+        for artist1_idx, artist2_idx in combinations(artists_idx, 2):
+            conflicts.append(conflicts_matrix[artist1_idx][artist2_idx])
+            
+
+        normalized_conflict_penalty = sum(conflicts) / maximum_possible_conflict 
+
+        # Final fitness 
+        slot_fitness = (normalized_genre_diversity - normalized_conflict_penalty) / 2
+
+        return slot_fitness
     
 class Population:
     def __repr__(self):

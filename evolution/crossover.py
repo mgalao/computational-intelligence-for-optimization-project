@@ -1,6 +1,7 @@
 from evolution.entities import Individual
 from data.import_data import artists
 import random
+from random import choice
 from collections import Counter
 from copy import deepcopy
 
@@ -70,9 +71,9 @@ def pmx_crossover(p1, p2):
     return Individual(repr=child1_matrix), Individual(repr=child2_matrix)
 
 
-def eager_breeder_crossover(p1, p2, verbose=True):
+def fitness_based_slot_crossover(p1, p2, verbose=True):
     """
-    Eager Breeder Crossover (EBC) implementation.
+    Fitness Based Slot Crossover implementation.
 
     This crossover selects the best-performing slots from both parents
     based on local slot fitness, builds an offspring from the top-performing slots,
@@ -136,25 +137,28 @@ def eager_breeder_crossover(p1, p2, verbose=True):
         print(f"Duplicates detected: {[k for k, v in counts.items() if v > 1]}")
         print(f"Missing artists: {missing}\n")
 
+    used_missing = set()
+    used_duplicates = set()
+
     for i in range(num_slots):
         for j in range(num_stages):
             artist = offspring_repr[i][j]
 
             # Replace if it's a duplicate (not yet fixed)
-            if counts[artist] > 1 and artist not in used:
-                replaced_with = missing[missing_idx]
+            if counts[artist] > 1 and artist not in used_duplicates:
+                # Choose a missing artist that hasn't been used
+                available_missing = list(set(missing) - used_missing)
+                if not available_missing:
+                    break  # No more missing artists to assign
+
+                replaced_with = choice(available_missing)
                 if verbose:
                     print(f"Replacing duplicate artist {artist} in slot {i}, stage {j} with missing artist {replaced_with}")
+
                 offspring_repr[i][j] = replaced_with
                 counts[artist] -= 1
-                missing_idx += 1
-                used.add(artist)
-
-                # Stop early if no more missing artists
-                if missing_idx >= len(missing):
-                    break
-        if missing_idx >= len(missing):
-            break
+                used_duplicates.add(artist)
+                used_missing.add(replaced_with)
 
     if verbose:
         print("\n--- Final Offspring Representation ---")

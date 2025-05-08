@@ -74,20 +74,20 @@ def eager_breeder_crossover(p1, p2, verbose=True):
     """
     Eager Breeder Crossover (EBC) implementation.
 
-    This crossover selects the best-performing slots (rows) from both parents
+    This crossover selects the best-performing slots from both parents
     based on local slot fitness, builds an offspring from the top-performing slots,
     and then repairs the individual to ensure each artist appears exactly once.
 
-    The repair phase replaces duplicates (artists appearing more than once) with 
-    missing artists, starting from the weakest slots to preserve strong ones.
+    The repair phase replaces duplicates with missing artists, starting from the 
+    weakest slots to preserve strong ones.
 
     Args:
-        p1 (Individual): First parent.
-        p2 (Individual): Second parent.
-        verbose (bool): If True, prints detailed steps.
+        p1: First parent.
+        p2: Second parent.
+        verbose: If True, prints detailed steps.
 
     Returns:
-        offspring (Individual): Valid child with one artist per slot.
+        offspring: Valid child with one artist per slot.
         None: Placeholder for a second child (not used).
     """
 
@@ -110,13 +110,13 @@ def eager_breeder_crossover(p1, p2, verbose=True):
     selected_slots = scored_slots[:num_slots]
 
     if verbose:
-        print("\n--- Top Slot Fitness Scores (Before Repair) ---")
+        print("\n--- Top Slot Fitness Scores ---")
         for i, (score, slot) in enumerate(selected_slots):
             print(f"Slot {i+1:2d} | Fitness: {score:.4f} | Artists: {slot}")
-        print("------------------------------------------------\n")
+        print("-----------------------------------\n")
 
-    # Sort weakest-to-strongest to repair weakest first
-    selected_slots.sort(key=lambda x: x[0])  # Ascending order
+    # Sort weakest to strongest to repair weakest first
+    selected_slots.sort(key=lambda x: x[0])  
     offspring_repr = deepcopy([slot for _, slot in selected_slots])
 
     # Repair: ensure valid permutation 
@@ -160,6 +160,6 @@ def eager_breeder_crossover(p1, p2, verbose=True):
         print("\n--- Final Offspring Representation ---")
         for idx, row in enumerate(offspring_repr):
             print(f"Slot {idx+1}: {row}")
-        print("------------------------------------------------\n")
+        print("------------------------------------------\n")
 
     return Individual(repr=offspring_repr), None

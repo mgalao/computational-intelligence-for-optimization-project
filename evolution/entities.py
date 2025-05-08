@@ -160,6 +160,11 @@ class Individual(Solution):
         genre_diversity = self.get_genre_diversity(artist_info)
         conflict_penalty = self.get_conflict_penalty(conflicts_matrix)
 
+ 
+        print(f"Prime popularity: {prime_slot_popularity:.4f}")
+        print(f"Genre diversity: {genre_diversity:.4f}")
+        print(f"Conflict penalty: {conflict_penalty:.4f}")
+
         # Combine components into a final fitness score
         return (prime_slot_popularity + genre_diversity - conflict_penalty) / 3 # Normalize to [0, 1]
 
@@ -235,7 +240,7 @@ class Individual(Solution):
         """
 
         # Calculate the number of conflicts for each slot
-        number_conflicts_per_slot = int(self.num_stages * (self.num_stages-1) / 2)
+        number_conflicts_per_slot = int(self.num_stages * (self.num_stages-1) / 2) 
 
         # Create a mask to get the upper triangle of the conflicts matrix
         mask = np.triu(np.ones(conflicts_matrix.shape, dtype=bool), k=1)
@@ -245,7 +250,7 @@ class Individual(Solution):
         top_conflicts = sorted(total_conflicts, reverse=True)[:number_conflicts_per_slot]
 
         # Calculate the maximum possible conflict
-        maximum_possible_conflict = sum(top_conflicts)
+        maximum_conflict_per_slot = sum(top_conflicts)
 
         # Calculate the conflict penalty for each slot
         conflicts = []
@@ -262,13 +267,15 @@ class Individual(Solution):
             for artist1_idx, artist2_idx in combinations(artists_idx, 2):
                 conflicts_per_slot.append(conflicts_matrix[artist1_idx][artist2_idx])
             
+            total_slot_conflict = sum(conflicts_per_slot)
+
+            # Normalize
+            normalized_conflict = total_slot_conflict / maximum_conflict_per_slot
+
             # Append the conflict penalty for this slot
-            conflicts.append(sum(conflicts_per_slot))
+            conflicts.append(normalized_conflict)
 
-        # Calculate the normalized conflict penalty
-        normalized_conflict = sum(conflicts) / maximum_possible_conflict
-
-        return normalized_conflict
+        return sum(conflicts) / len(conflicts)
     
     def get_slot_fitness(self, slot_idx):
         """

@@ -9,7 +9,6 @@ import pandas as pd
 selection = []
 crossover = []
 mutation = []
-elitism = [True, False]
 
 # ---------------------- Fixed Hyperparameters ---------------------- #
 
@@ -17,7 +16,7 @@ elitism = [True, False]
 
 
 
-def grid_search(selection, crossover, mutation, elitism):
+def grid_search(selection, crossover, mutation):
     ...
 
 

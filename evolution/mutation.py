@@ -143,7 +143,7 @@ def prime_slot_swap_mutation(representation, mut_prob):
         )
 
         # Print the details after the swap
-        print(f"After  - Prime Slot: {new_representation[prime_idx]}")
-        print(f"After  - Other Slot : {new_representation[other_idx]}")
+        print(f"After - Prime Slot: {new_representation[prime_idx]}")
+        print(f"After - Other Slot : {new_representation[other_idx]}")
 
     return new_representation

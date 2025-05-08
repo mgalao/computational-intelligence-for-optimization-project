@@ -119,7 +119,6 @@ class Individual(Solution):
             raise ValueError("Each artist must be assigned exactly once.")
 
         # Check if all artist IDs are valid
-        # valid_ids = set(artists['artist_id'])
         valid_ids = set(artists.index)
         if not all(artist_id in valid_ids for artist_id in flat):
             raise ValueError("All artist IDs must exist in the dataset.")

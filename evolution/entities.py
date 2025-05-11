@@ -59,7 +59,43 @@ class Individual(Solution):
         - Genre Diversity
         - Conflict Penalty
     """
+            
+    def __init__(self,
+                repr=None,
+                artists=artists,
+                conflicts_matrix=conflicts_matrix,
+                mutation_function=None,
+                crossover_function=None,
+                ):
+            """
+            Initializes an Individual with a representation (if provided)
+            and validates it.
+            """
 
+            # Set the artists and conflicts matrix
+            self.artists = artists
+            self.conflicts_matrix = conflicts_matrix
+            self.mutation_function = mutation_function
+            self.crossover_function = crossover_function
+
+            # If a representation is provided, infer dimensions from it
+            if repr:
+                self.num_stages = len(repr[0]) # cols
+                self.num_slots_per_stage = len(repr) # rows
+                self.num_slots = self.num_stages * self.num_slots_per_stage
+                self._validate_repr(repr)
+            else:
+                # If no representation is provided, set default dimensions
+                self.num_stages = 5
+                self.num_slots_per_stage = 7
+                self.num_slots = self.num_stages * self.num_slots_per_stage
+
+                # Generate a random valid representation
+                repr = self.random_initial_representation()
+
+            # Call the superclass constructor
+            super().__init__(repr=repr)
+    
     def __repr__(self):
         """
         Returns a string representation of the individual as a slot x stage matrix
@@ -72,24 +108,6 @@ class Individual(Solution):
         )
 
         return f"Fitness: {self.fitness():.4f}\n{matrix_str}"
-            
-    def __init__(self, repr=None, num_stages=5, num_slots_per_stage=7):
-        """
-        Initializes an Individual with a representation (if provided)
-        and validates it.
-        """
-
-        # Number of stages and slots per stage
-        self.num_stages = num_stages
-        self.num_slots_per_stage = num_slots_per_stage
-        self.num_slots = num_stages * num_slots_per_stage
-
-        # Validate representation if provided
-        if repr:
-            self._validate_repr(repr)
-
-        # If no representation is provided, generate a random one
-        super().__init__(repr=repr)
     
     def _validate_repr(self, repr):
         """
@@ -119,7 +137,7 @@ class Individual(Solution):
             raise ValueError("Each artist must be assigned exactly once.")
 
         # Check if all artist IDs are valid
-        valid_ids = set(artists.index)
+        valid_ids = set(self.artists.index)
         if not all(artist_id in valid_ids for artist_id in flat):
             raise ValueError("All artist IDs must exist in the dataset.")
     
@@ -130,7 +148,7 @@ class Individual(Solution):
         """
 
         # Shuffle artist IDs
-        artist_ids = list(artists.index)
+        artist_ids = list(self.artists.index)
         random.shuffle(artist_ids)
 
         # Create a matrix of size (num_slots_per_stage x num_stages)
@@ -152,18 +170,13 @@ class Individual(Solution):
         # Create a dictionary mapping artist IDs to their popularity and genre
         artist_info = {
             idx: {'popularity': row['popularity'], 'genre': row['genre']}
-            for idx, row in artists.iterrows()
+            for idx, row in self.artists.iterrows()
         }
 
         # Calculate individual components of the fitness score
         prime_slot_popularity = self.get_prime_slot_popularity(artist_info)
         genre_diversity = self.get_genre_diversity(artist_info)
-        conflict_penalty = self.get_conflict_penalty(conflicts_matrix)
-
- 
-        print(f"Prime popularity: {prime_slot_popularity:.4f}")
-        print(f"Genre diversity: {genre_diversity:.4f}")
-        print(f"Conflict penalty: {conflict_penalty:.4f}")
+        conflict_penalty = self.get_conflict_penalty(self.conflicts_matrix)
 
         # Combine components into a final fitness score
         return (prime_slot_popularity + genre_diversity - conflict_penalty) / 3 # Normalize to [0, 1]
@@ -294,7 +307,7 @@ class Individual(Solution):
         # artist info
         artist_info = {
             idx: {'popularity': row['popularity'], 'genre': row['genre']}
-            for idx, row in artists.iterrows()
+            for idx, row in self.artists.iterrows()
         }
 
         slot_artists = self.repr[slot_idx]
@@ -302,7 +315,7 @@ class Individual(Solution):
         num_unique_genres = len(set(genres))
 
         # Calculate maximum possible genre diversity
-        all_genres = set(artists['genre'])
+        all_genres = set(self.artists['genre'])
         max_genre_diversity = min(self.num_stages, len(all_genres))
         normalized_genre_diversity = num_unique_genres / max_genre_diversity
 
@@ -310,7 +323,6 @@ class Individual(Solution):
         number_conflict = int(self.num_stages * (self.num_stages - 1) / 2)
         mask = np.triu(np.ones(conflicts_matrix.shape, dtype=bool), k=1)
         total_conflicts = conflicts_matrix[mask].tolist()
-        top_conflicts = sorted(total_conflicts, reverse=True)[:number_conflict]
         maximum_possible_conflict = sum(sorted(total_conflicts, reverse=True)[:number_conflict])
 
         conflicts = []
@@ -325,23 +337,61 @@ class Individual(Solution):
         for artist1_idx, artist2_idx in combinations(artists_idx, 2):
             conflicts.append(conflicts_matrix[artist1_idx][artist2_idx])
             
-
         normalized_conflict_penalty = sum(conflicts) / maximum_possible_conflict 
 
         # Final fitness 
         slot_fitness = (normalized_genre_diversity - normalized_conflict_penalty) / 2
 
         return slot_fitness
-    
-class Population:
-    def __repr__(self):
-        """
-        Returns a string representation of the population.
-        Each individual is represented as a slot x stage matrix.
-        """      
-        return "\n\n".join([f"Individual {i}:\n{indiv}" for i, indiv in enumerate(self.individuals)])
 
-    def __init__(self, population_size):
+    def crossover(self, other_solution):
+        """
+        Applies the crossover operator to generate two offspring.
+        """
+        
+        # Apply crossover
+        offspring1_repr, offspring2_repr = self.crossover_function(self, other_solution)
+
+        return (
+            Individual(
+                repr=offspring1_repr,
+                artists=self.artists,
+                conflicts_matrix=self.conflicts_matrix,
+                mutation_function=self.mutation_function,
+                crossover_function=self.crossover_function,
+            ),
+            Individual(
+                repr=offspring2_repr,
+                artists=self.artists,
+                conflicts_matrix=self.conflicts_matrix,
+                mutation_function=self.mutation_function,
+                crossover_function=self.crossover_function,
+            )
+        )
+    
+    def mutation(self, mut_prob):
+        """
+        Applies the mutation operator to the individual.
+        """
+
+        # Apply mutation
+        new_repr = self.mutation_function(self, mut_prob)
+        
+        return Individual(
+            repr=new_repr,
+            artists=self.artists,
+            conflicts_matrix=self.conflicts_matrix,
+            mutation_function=self.mutation_function,
+            crossover_function=self.crossover_function,
+        )
+
+
+class Population:
+    def __init__(self,
+                 population_size,
+                 crossover_function,
+                 mutation_function
+                 ):
         """
         Initializes a population of unique individuals.
         Each individual is represented as a slot x stage matrix.
@@ -351,24 +401,50 @@ class Population:
 
         # Set the population size and initialize the list of individuals
         self.population_size = population_size
-        individuals = []
+        self.individuals = []
         unique_reprs = set() # To check for uniqueness
 
         # Generate unique individuals until the population size is reached
-        while len(individuals) < population_size:
+        while len(self.individuals) < population_size:
             # Create a new individual
-            indiv = Individual()
+            indiv = Individual(
+                crossover_function=crossover_function,
+                mutation_function=mutation_function
+            )
 
             # Store the representation as a tuple of tuples (to check for uniqueness)
             repr_as_tuple =  tuple(tuple(row) for row in deepcopy(indiv.repr))
 
             # If the representation is unique, add the individual to the population
             if repr_as_tuple not in unique_reprs:
-                individuals.append(indiv)
+                self.individuals.append(indiv)
                 unique_reprs.add(repr_as_tuple)
-
-        self.individuals = individuals
     
+    def __repr__(self):
+        """
+        Returns a string representation of the population.
+        Each individual is represented as a slot x stage matrix.
+        """      
+        return "\n\n".join([f"Individual {i}:\n{indiv}" for i, indiv in enumerate(self.individuals)])
+    
+    def __getitem__(self, index):
+        """
+        Returns the individual at the specified index.
+        """
+        return self.individuals[index]
+
+    def __len__(self):
+        """
+        Returns the number of individuals in the population.
+        """
+        return len(self.individuals)
+
+    def __iter__(self):
+        """
+        Returns an iterator over the individuals in the population.
+        """
+        return iter(self.individuals)
+
     def best_individuals(self, n=10):
         """
         Returns the n best individuals in the population

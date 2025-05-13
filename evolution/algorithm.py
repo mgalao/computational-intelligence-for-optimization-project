@@ -35,7 +35,7 @@ def genetic_algorithm(
     xo_prob: float = 0.9,
     mut_prob: float = 0.2,
     elitism: bool = True,
-    verbose: bool = False,
+    verbose_ga: bool = True
 ) -> 'Individual':
     """
     Executes a genetic algorithm to optimize a population of solutions.
@@ -61,7 +61,7 @@ def genetic_algorithm(
 
     # Repeat until termination condition
     for gen in range(1, max_gen + 1):
-        if verbose:
+        if verbose_ga:
             print(f'-------------- Generation: {gen} --------------')
 
         # Create an empty population P'
@@ -74,24 +74,24 @@ def genetic_algorithm(
         # Repeat until P' contains N individuals
         while len(new_population) < len(population):
             # Choose 2 individuals from P using a selection algorithm
-            first_ind = selection_algorithm(population, maximization)
-            second_ind = selection_algorithm(population, maximization)
+            first_ind = selection_algorithm(population)
+            second_ind = selection_algorithm(population)
             
-            if verbose:
+            if verbose_ga:
                 print(f'\nSelected individuals:\n{first_ind}\n{second_ind}\n')
 
             # Choose an operator between crossover and replication
             # Apply the operator to generate the offspring
             if random.random() < xo_prob:
                 offspring1, offspring2 = first_ind.crossover(second_ind)
-                if verbose:
+                if verbose_ga:
                     print(f'Applied crossover - offspring:')
             else:
                 offspring1, offspring2 = deepcopy(first_ind), deepcopy(second_ind)
-                if verbose:
+                if verbose_ga:
                     print(f'Applied replication - offspring:')
             
-            if verbose:
+            if verbose_ga:
                 print(f'{offspring1}\n{offspring2}')
             
             # Apply mutation to the offspring
@@ -100,13 +100,13 @@ def genetic_algorithm(
             # Insert the mutated individuals into P'
             new_population.append(first_new_ind)
 
-            if verbose:
+            if verbose_ga:
                 print(f'\nFirst mutated individual:\n{first_new_ind}')
 
-            if len(new_population) < len(population):
+            if offspring2 is not None and len(new_population) < len(population):
                 second_new_ind = offspring2.mutation(mut_prob)
                 new_population.append(second_new_ind)
-                if verbose:
+                if verbose_ga:
                     print(f'Second mutated individual:\n{second_new_ind}')
             
         
@@ -115,7 +115,7 @@ def genetic_algorithm(
         population = new_population
 
 
-        if verbose:
+        if verbose_ga:
             print(f'\nFinal best individual in generation: {get_best_ind(population, maximization).fitness():.4f}\n')
         
         fitness_history.append(get_best_ind(population, maximization).fitness())

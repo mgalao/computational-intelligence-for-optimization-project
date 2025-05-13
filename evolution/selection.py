@@ -11,8 +11,7 @@ from copy import deepcopy
 import random
 
 def fitness_proportionate_selection(
-    population: 'Population',
-    maximization: bool,
+    population: 'Population'
 ) -> 'Individual':
     """
     Selects an individual from the population based on fitness proportionate selection.
@@ -39,7 +38,7 @@ def fitness_proportionate_selection(
 
     return deepcopy(selected_indiv)
 
-def ranking_selection(population, maximization):
+def ranking_selection(population):
     probabilities = []
     sorted_population = sorted(population, key=lambda indiv: indiv.fitness(), reverse=True)
 
@@ -51,7 +50,9 @@ def ranking_selection(population, maximization):
 
     return deepcopy(selected_indiv)
 
-def tournament_selection(population, tournament_size, maximization):
-    tournament_population = random.sample(population, tournament_size)
-    best_indiv = max(tournament_population, key=lambda indiv: indiv.fitness(), reverse=True)
+def tournament_selection(population, tournament_size=4):
+
+    tournament_population = random.sample(list(population), tournament_size)
+    best_indiv = max(tournament_population, key=lambda indiv: indiv.fitness())
+
     return deepcopy(best_indiv)

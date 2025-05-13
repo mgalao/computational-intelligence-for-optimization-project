@@ -15,7 +15,8 @@ import random
 def n_swap_mutation(
     individual: 'Individual',
     mut_prob: float,
-    n_swaps: int = 2
+    n_swaps: int = 2,
+    verbose: bool = False
 ) -> list[list[int]]:
     """
     Applies n swap mutations to the given 2D matrix representation with a specified probability.
@@ -62,7 +63,8 @@ def n_swap_mutation(
             val2 = new_representation[r2][c2]
 
             # Print the swap details
-            print(f"Swap {i+1}: ({r1},{c1}) [{val1}] <--> ({r2},{c2}) [{val2}]")
+            if verbose:
+                print(f"Swap {i+1}: ({r1},{c1}) [{val1}] <--> ({r2},{c2}) [{val2}]")
 
             # Perform the swap
             new_representation[r1][c1], new_representation[r2][c2] = val2, val1
@@ -72,7 +74,8 @@ def n_swap_mutation(
 def scramble_mutation(
     individual: 'Individual',
     mut_prob: float,
-    max_segment_length: int = 4
+    max_segment_length: int = 4,
+    verbose: bool = False
 ) -> list[list[int]]:
     """
     Applies scramble mutation by shuffling a random-length segment
@@ -112,10 +115,14 @@ def scramble_mutation(
         segment = [new_representation[r][col] for r in range(start, end)]
 
         # Print the details of the mutation
-        print(f"Stage: {col}, Slots: {start}-{end-1}, Length: {actual_length}")
-        print(f"Before: {segment}")
+        if verbose:
+            print(f"Stage: {col}, Slots: {start}-{end-1}, Length: {actual_length}")
+            print(f"Before: {segment}")
+
         random.shuffle(segment)
-        print(f"After: {segment}")
+
+        if verbose:
+            print(f"After: {segment}")
 
         # Place the scrambled segment back into the representation
         for i, r in enumerate(range(start, end)):
@@ -125,7 +132,8 @@ def scramble_mutation(
 
 def prime_slot_swap_mutation(
     individual: 'Individual',
-    mut_prob: float
+    mut_prob: float,
+    verbose: bool = False
 ) -> list[list[int]]:
     """
     Swaps the prime slot (last row) with another randomly selected slot (row).
@@ -151,9 +159,10 @@ def prime_slot_swap_mutation(
         other_idx = random.randint(0, prime_idx - 1)
 
         # Print the details before the swap
-        print(f"Swapping row {prime_idx} (prime slot) with row {other_idx}")
-        print(f"Before - Prime Slot: {new_representation[prime_idx]}")
-        print(f"Before - Other Slot: {new_representation[other_idx]}")
+        if verbose:
+            print(f"Swapping row {prime_idx} (prime slot) with row {other_idx}")
+            print(f"Before - Prime Slot: {new_representation[prime_idx]}")
+            print(f"Before - Other Slot: {new_representation[other_idx]}")
 
         # Swap the prime slot with the randomly selected slot
         new_representation[prime_idx], new_representation[other_idx] = (
@@ -162,15 +171,17 @@ def prime_slot_swap_mutation(
         )
 
         # Print the details after the swap
-        print(f"After - Prime Slot: {new_representation[prime_idx]}")
-        print(f"After - Other Slot : {new_representation[other_idx]}")
+        if verbose:
+            print(f"After - Prime Slot: {new_representation[prime_idx]}")
+            print(f"After - Other Slot : {new_representation[other_idx]}")
 
     return new_representation
 
 def preserve_best_slots_mutation(
     individual: 'Individual',
     mut_prob: float,
-    keep_ratio: float = 0.5
+    keep_ratio: float = 0.5,
+    verbose: bool = False
 ) -> list[list[int]]:
     """
     Preserves high-fitness time slots (rows) based on their individual slot fitness scores,
@@ -203,7 +214,8 @@ def preserve_best_slots_mutation(
         rows_to_keep = {i for i, _ in slot_fitnesses[:num_to_keep]}
 
         # Print the fitness scores and the rows to keep
-        print(f"Preserving rows: {sorted(rows_to_keep)}")
+        if verbose:
+            print(f"Preserving rows: {sorted(rows_to_keep)}")
 
         # Gather remaining artists and shuffle them
         remaining_artists = [

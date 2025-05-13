@@ -18,6 +18,7 @@ from collections import Counter
 def pmx_crossover(
     p1: 'Individual',
     p2: 'Individual',
+    verbose: bool = False,
 ) -> list[list[int]]:
 
     """
@@ -48,12 +49,15 @@ def pmx_crossover(
     size = len(p1_flat)
     
     # Print parent info
-    print("Parent 1:", p1_flat)
-    print("Parent 2:", p2_flat)
+    if verbose:
+        print("Parent 1:", p1_flat)
+        print("Parent 2:", p2_flat)
 
     # Crossover points
     cx1, cx2 = sorted(random.sample(range(size), 2))
-    print(f"Crossover points: cx1={cx1}, cx2={cx2}")
+
+    if verbose:
+        print(f"Crossover points: cx1={cx1}, cx2={cx2}")
 
     # Initial children
     child1 = [None] * size
@@ -63,15 +67,13 @@ def pmx_crossover(
     child1[cx1:cx2] = p2_flat[cx1:cx2]
     child2[cx1:cx2] = p1_flat[cx1:cx2]
 
-    print(f"Child1 after crossover segment: {child1}")
-    print(f"Child2 after crossover segment: {child2}")
-
     # Mappings
     mapping1 = {p2_flat[i]: p1_flat[i] for i in range(cx1, cx2)}
     mapping2 = {p1_flat[i]: p2_flat[i] for i in range(cx1, cx2)}
 
-    print("Mapping1 (for child1):", mapping1)
-    print("Mapping2 (for child2):", mapping2)
+    if verbose:
+        print("Mapping1 (for child1):", mapping1)
+        print("Mapping2 (for child2):", mapping2)
 
     segment1 = set(child1[cx1:cx2])
     segment2 = set(child2[cx1:cx2])
@@ -107,6 +109,7 @@ def pmx_crossover(
 def fitness_based_slot_crossover(
     p1: 'Individual',
     p2: 'Individual',
+    verbose: bool = False
 ) -> list[list[int]]:
     """
     Fitness Based Slot Crossover implementation.
@@ -151,10 +154,11 @@ def fitness_based_slot_crossover(
     selected_slots = scored_slots[:num_slots]
 
     # Print selected slots
-    print("\n--- Top Slot Fitness Scores ---")
-    for i, (score, slot) in enumerate(selected_slots):
-        print(f"Slot {i+1:2d} | Fitness: {score:.4f} | Artists: {slot}")
-    print("-----------------------------------\n")
+    if verbose:
+        print("\n--- Top Slot Fitness Scores ---")
+        for i, (score, slot) in enumerate(selected_slots):
+            print(f"Slot {i+1:2d} | Fitness: {score:.4f} | Artists: {slot}")
+        print("-----------------------------------\n")
 
     # Sort weakest to strongest to repair weakest first
     selected_slots.sort(key=lambda x: x[0])  
@@ -170,9 +174,10 @@ def fitness_based_slot_crossover(
     missing = list(all_artists - present_artists)
 
     # Print counts
-    print(f"Total artists expected: {len(all_artists)}")
-    print(f"Duplicates detected: {[k for k, v in counts.items() if v > 1]}")
-    print(f"Missing artists: {missing}\n")
+    if verbose:
+        print(f"Total artists expected: {len(all_artists)}")
+        print(f"Duplicates detected: {[k for k, v in counts.items() if v > 1]}")
+        print(f"Missing artists: {missing}\n")
 
     used_missing = set()
     used_duplicates = set()
@@ -190,7 +195,8 @@ def fitness_based_slot_crossover(
 
                 replaced_with = choice(available_missing)
                 # Print replacement details
-                print(f"Replacing duplicate artist {artist} in slot {i}, stage {j} with missing artist {replaced_with}")
+                if verbose:
+                    print(f"Replacing duplicate artist {artist} in slot {i}, stage {j} with missing artist {replaced_with}")
 
                 offspring_repr[i][j] = replaced_with
                 counts[artist] -= 1
@@ -198,9 +204,10 @@ def fitness_based_slot_crossover(
                 used_missing.add(replaced_with)
 
     # Print final offspring representation
-    print("\n--- Final Offspring Representation ---")
-    for idx, row in enumerate(offspring_repr):
-        print(f"Slot {idx+1}: {row}")
-    print("------------------------------------------\n")
+    if verbose:
+        print("\n--- Final Offspring Representation ---")
+        for idx, row in enumerate(offspring_repr):
+            print(f"Slot {idx+1}: {row}")
+        print("------------------------------------------\n")
 
     return offspring_repr, None

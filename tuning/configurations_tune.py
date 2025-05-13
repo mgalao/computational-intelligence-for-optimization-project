@@ -1,6 +1,6 @@
 from evolution.entities import Population
-from evolution.selection import (fitness_proportionate_selection, ranking_selection,tournament_selection )
-from evolution.crossover import ( pmx_crossover, fitness_based_slot_crossover )
+from evolution.selection import (fitness_proportionate_selection, ranking_selection, tournament_selection)
+from evolution.crossover import (pmx_crossover, fitness_based_slot_crossover)
 from evolution.mutation import (n_swap_mutation,scramble_mutation,prime_slot_swap_mutation,preserve_best_slots_mutation)
 from evolution.algorithm import genetic_algorithm
 import pandas as pd
@@ -14,7 +14,9 @@ import csv
 
 crossover_operators = [pmx_crossover, fitness_based_slot_crossover]
 mutation_operators = [n_swap_mutation, scramble_mutation, prime_slot_swap_mutation, preserve_best_slots_mutation]
-selection_methods = [fitness_proportionate_selection, ranking_selection,tournament_selection]
+selection_methods = [tournament_selection]
+
+# selection_methods = [fitness_proportionate_selection, ranking_selection, tournament_selection]
 
 # All combinations of crossover and mutation operators
 configurations= list(product(crossover_operators, mutation_operators, selection_methods))
@@ -28,10 +30,9 @@ mut_prob = 0.1
 n_generations = 100
 pop_size = 50
 elitism = True
-verbose = True
 maximization = True
 
-def grid_search(configurations, mode='detailed', n_runs=5):
+def grid_search(configurations, mode='detailed', n_runs=5, verbose_ga=True):
 
     results = pd.DataFrame()
 
@@ -54,7 +55,7 @@ def grid_search(configurations, mode='detailed', n_runs=5):
                                 xo_prob=xo_prob,
                                 mut_prob=mut_prob,
                                 elitism=elitism,
-                                verbose=verbose)
+                                verbose_ga=verbose_ga)
             
             configuration_results.append(fitness_history)
             count += 1
@@ -62,7 +63,8 @@ def grid_search(configurations, mode='detailed', n_runs=5):
         if mode =='detailed':
             results[configuration_name] = [json.dumps(gen) for gen in configuration_results]
         elif mode == 'summary':
-            results[configuration_name] = np.median(configuration_results, axis=1)
+            best_fitnesses = [max(run) for run in configuration_results]
+            results[configuration_name] = best_fitnesses
 
     filename='results_detailed.csv' if mode == 'detailed' else 'results_summary.csv'
     results.to_csv(filename, index=False, quoting=csv.QUOTE_NONNUMERIC if mode == 'detailed' else csv.QUOTE_MINIMAL)

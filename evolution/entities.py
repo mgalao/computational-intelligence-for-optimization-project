@@ -75,7 +75,6 @@ class Individual(Solution):
             # Set the artists and conflicts matrix
             self.artists = artists
             self.conflicts_matrix = conflicts_matrix
-    
             self.mutation_function = mutation_function
             self.crossover_function = crossover_function
 

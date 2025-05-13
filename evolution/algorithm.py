@@ -56,6 +56,8 @@ def genetic_algorithm(
 
     # Initialize a population with N individuals
     population = initial_population
+    fitness_history = []
+    
 
     # Repeat until termination condition
     for gen in range(1, max_gen + 1):
@@ -106,12 +108,18 @@ def genetic_algorithm(
                 new_population.append(second_new_ind)
                 if verbose:
                     print(f'Second mutated individual:\n{second_new_ind}')
+            
         
         # Replace P with P'
+
         population = new_population
+
 
         if verbose:
             print(f'\nFinal best individual in generation: {get_best_ind(population, maximization).fitness():.4f}\n')
+        
+        fitness_history.append(get_best_ind(population, maximization).fitness())
+
 
     # Return the best individual in P
-    return get_best_ind(population, maximization)
+    return fitness_history, get_best_ind(population, maximization)

@@ -11,6 +11,7 @@ from copy import deepcopy
 from data.import_data import artists, conflicts_matrix
 import numpy as np
 from itertools import combinations
+from random import sample
 
 class Solution(ABC):
     """
@@ -179,8 +180,8 @@ class Individual(Solution):
         conflict_penalty = self.get_conflict_penalty(self.conflicts_matrix)
 
         # Combine components into a final fitness score
-        return (prime_slot_popularity + genre_diversity - conflict_penalty) / 3 # Normalize to [0, 1]
-
+        return (prime_slot_popularity + genre_diversity - conflict_penalty)
+    
     def get_prime_slot_popularity(self, artist_info):
         """
         Calculates the prime slot popularity of artists in the lineup.
@@ -384,6 +385,46 @@ class Individual(Solution):
             mutation_function=self.mutation_function,
             crossover_function=self.crossover_function,
         )
+    
+    def get_random_neighbor(self):
+        """
+        Returns a random neighbor by swaping two artists in prime slot.
+        """
+        prime_slot_index = self.num_slots_per_stage - 1
+        new_repr = deepcopy(self.repr)
+        stage1, stage2 = sample(range(self.num_stages),2)
+
+        new_repr[prime_slot_index][stage1], new_repr[prime_slot_index][stage2] = new_repr[prime_slot_index][stage2], new_repr[prime_slot_index][stage1]
+        try:
+            return Individual ( repr = new_repr, artists = self.artists, conflicts_matrix=self.conflicts_matrix, mutation_function=self.mutation_function, crossover_function=self.crossover_function)
+
+        except Exception:
+            return deepcopy(self)
+
+
+    def get_neighbors(self):
+        """
+        Returns neighbors by swaping two artist in prime slot.
+        """
+        neighbors = []
+        prime_slot_index = self.num_slots_per_stage - 1
+        stages = list(range(self.num_stages))
+        
+        for (stage1,stage2) in combinations(stages,2):
+            new_repr = deepcopy(self.repr)
+            new_repr[prime_slot_index][stage1], new_repr[prime_slot_index][stage2] = new_repr[prime_slot_index][stage2], new_repr[prime_slot_index][stage1]
+            try:
+                neighbor = Individual ( repr = new_repr, artists = self.artists, conflicts_matrix=self.conflicts_matrix, mutation_function=self.mutation_function, crossover_function=self.crossover_function)
+                neighbors.append(neighbor)
+
+            except Exception:
+                continue
+            
+        return neighbors
+
+
+            
+        
 
 
 class Population:

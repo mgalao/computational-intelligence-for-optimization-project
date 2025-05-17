@@ -249,7 +249,7 @@ class Individual(Solution):
         Calculates the conflict penalty for the lineup.
         The penalty is based on the number of conflicts between artists in the same slot.
         The penalty is normalized by the maximum possible conflict.
-        The maximum possible conflict is the sum of the top N conflicts,
+        The maximum possible conflict is the sum of the top cN conflicts,
         where N is the number of slots in a stage.
         """
 

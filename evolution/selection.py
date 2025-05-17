@@ -29,10 +29,17 @@ def fitness_proportionate_selection(
 
     for indiv in population:
         fitnesses.append(indiv.fitness())
+
+    # Shift fitness if there are negative or zero values
+    min_fitness = min(fitnesses)
+    if min_fitness <= 0:
+        shift = abs(min_fitness) + 1e-6
+        fitnesses = [f + shift for f in fitnesses]
+
     total_fitness = sum(fitnesses)
 
-    for indiv in population:
-        probabilities.append(indiv.fitness()/total_fitness)
+    for f in fitnesses:
+        probabilities.append(f / total_fitness)
 
     selected_indiv = random.choices(population, weights=probabilities, k=1)[0]
 

@@ -388,43 +388,47 @@ class Individual(Solution):
     
     def get_random_neighbor(self):
         """
-        Returns a random neighbor by swaping two artists in prime slot.
+        Returns a random neighbor by applying a 2-swap mutation to the current individual.
         """
-        prime_slot_index = self.num_slots_per_stage - 1
-        new_repr = deepcopy(self.repr)
-        stage1, stage2 = sample(range(self.num_stages),2)
-
-        new_repr[prime_slot_index][stage1], new_repr[prime_slot_index][stage2] = new_repr[prime_slot_index][stage2], new_repr[prime_slot_index][stage1]
+        from evolution.mutation import n_swap_mutation 
+        mutated_repr = n_swap_mutation(self, mut_prob=1, n_swaps=2)
         try:
-            return Individual ( repr = new_repr, artists = self.artists, conflicts_matrix=self.conflicts_matrix, mutation_function=self.mutation_function, crossover_function=self.crossover_function)
-
+            return Individual(
+                repr=mutated_repr,
+                artists=self.artists,
+                conflicts_matrix=self.conflicts_matrix,
+                mutation_function=self.mutation_function,
+                crossover_function=self.crossover_function
+            )
         except Exception:
-            return deepcopy(self)
+            return deepcopy(self)  # fallback if mutation is invalid
 
 
     def get_neighbors(self):
         """
-        Returns neighbors by swaping two artist in prime slot.
+        Generates 5 valid neighbors by applying 2-swap mutations.
+        Skips invalid individuals and retries until 5 are collected or a max number of attempts is reached.
         """
+        from evolution.mutation import n_swap_mutation 
         neighbors = []
-        prime_slot_index = self.num_slots_per_stage - 1
-        stages = list(range(self.num_stages))
-        
-        for (stage1,stage2) in combinations(stages,2):
-            new_repr = deepcopy(self.repr)
-            new_repr[prime_slot_index][stage1], new_repr[prime_slot_index][stage2] = new_repr[prime_slot_index][stage2], new_repr[prime_slot_index][stage1]
+        max_attempts = 20  # prevents infinite loops if many mutations are invalid
+
+        while len(neighbors) < 5 and max_attempts > 0:
+            mutated_repr = n_swap_mutation(self, mut_prob=1, n_swaps=2)
             try:
-                neighbor = Individual ( repr = new_repr, artists = self.artists, conflicts_matrix=self.conflicts_matrix, mutation_function=self.mutation_function, crossover_function=self.crossover_function)
+                neighbor = Individual(
+                    repr=mutated_repr,
+                    artists=self.artists,
+                    conflicts_matrix=self.conflicts_matrix,
+                    mutation_function=self.mutation_function,
+                    crossover_function=self.crossover_function
+                )
                 neighbors.append(neighbor)
-
             except Exception:
-                continue
-            
+                pass
+            max_attempts -= 1
+
         return neighbors
-
-
-            
-        
 
 
 class Population:

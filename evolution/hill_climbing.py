@@ -1,4 +1,3 @@
-
 from evolution.entities import Solution
 from utils import *
 

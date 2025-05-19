@@ -5,13 +5,8 @@ prime slot popularity, genre diversity, and conflict penalties.
 A 'Population' class is also defined to manage a collection of unique individuals.
 """
 
-from abc import ABC, abstractmethod
-import random
-from copy import deepcopy
 from data.import_data import artists, conflicts_matrix
-import numpy as np
-from itertools import combinations
-from random import sample
+from utils import *
 
 class Solution(ABC):
     """

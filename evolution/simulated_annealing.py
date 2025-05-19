@@ -1,10 +1,7 @@
-import random
-import numpy as np
-from copy import deepcopy
+
 
 from evolution.entities import Solution
-
-from copy import deepcopy
+from utils import *
 
 def simulated_annealing(
     initial_solution: Solution,

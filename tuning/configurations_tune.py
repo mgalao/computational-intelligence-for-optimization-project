@@ -32,7 +32,7 @@ pop_size = 50
 elitism = True
 maximization = True
 
-def grid_search(configurations, mode='detailed', n_runs=5, verbose_ga=True):
+def grid_search(configurations, mode='detailed', n_runs=30, verbose_ga=True):
 
     results = pd.DataFrame()
 
@@ -66,6 +66,6 @@ def grid_search(configurations, mode='detailed', n_runs=5, verbose_ga=True):
             best_fitnesses = [max(run) for run in configuration_results]
             results[configuration_name] = best_fitnesses
 
-    filename='results_detailed.csv' if mode == 'detailed' else 'results_summary.csv'
-    results.to_csv(filename, index=False, quoting=csv.QUOTE_NONNUMERIC if mode == 'detailed' else csv.QUOTE_MINIMAL)
+    return results
+
 

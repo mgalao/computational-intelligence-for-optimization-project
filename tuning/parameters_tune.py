@@ -3,16 +3,12 @@ from evolution.selection import (fitness_proportionate_selection, ranking_select
 from evolution.crossover import (pmx_crossover, fitness_based_slot_crossover)
 from evolution.mutation import (n_swap_mutation,scramble_mutation,prime_slot_swap_mutation,preserve_best_slots_mutation)
 from evolution.algorithm import genetic_algorithm
-
-import pandas as pd
-import random
-import json
-import csv
-from functools import partial
 from evolution.entities import Population
 
+from utils import *
+
 # --------------------- Fixed Hyperparameters -------------------- #
-selection = tournament_selection
+selection_base = tournament_selection
 crossover = pmx_crossover
 mutation_base = n_swap_mutation
 
@@ -26,7 +22,7 @@ n_iterations = 2
 
 
 
-def random_search(mutation_base=mutation_base, crossover=crossover, selection=selection,
+def random_search(mutation_base=mutation_base, crossover=crossover, selection_base=selection_base,
     n_iterations=n_iterations, n_runs=n_runs, n_generations=n_generations, pop_size=pop_size, elitism=elitism, maximization=maximization,
     verbose_ga=True, mode='summary', seed=None):
     if seed is not None:
@@ -40,6 +36,7 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection=se
         xo_prob = round(random.uniform(0.6, 1.0), 2)
         mut_prob = round(random.uniform(0.05, 0.4), 2)
         n_swaps = random.randint(2, 10)
+        tournament_size = random.randint(2, 10)
 
         # Check for duplicates
         config_key = (xo_prob, mut_prob, n_swaps)
@@ -55,6 +52,7 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection=se
 
             # --- Apply partial to mutation operator ---
             mutation = partial(mutation_base, n_swaps=n_swaps)
+            selection = partial(selection_base, tournament_size=tournament_size)
 
             # --- Run GA ---
             population = Population(population_size=pop_size, crossover_function=crossover, mutation_function=mutation)

@@ -7,8 +7,7 @@ in a genetic algorithm. The selection methods include:
 """
 
 from evolution.entities import *
-from copy import deepcopy
-import random
+from utils import *
 
 def fitness_proportionate_selection(
     population: 'Population'

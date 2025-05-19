@@ -4,9 +4,7 @@ It includes functions for selection, crossover, mutation, and elitism.
 """
 
 from evolution.entities import *
-import random
-from copy import deepcopy
-from typing import Callable
+from utils import *
 
 
 def get_best_ind(

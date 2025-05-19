@@ -3,13 +3,8 @@ from evolution.selection import (fitness_proportionate_selection, ranking_select
 from evolution.crossover import (pmx_crossover, fitness_based_slot_crossover)
 from evolution.mutation import (n_swap_mutation,scramble_mutation,prime_slot_swap_mutation,preserve_best_slots_mutation)
 from evolution.algorithm import genetic_algorithm
-import pandas as pd
-from itertools import product
-from random import sample
 from evolution.algorithm import genetic_algorithm
-import numpy as np
-import json
-import csv
+from utils import *
 
 
 crossover_operators = [pmx_crossover, fitness_based_slot_crossover]

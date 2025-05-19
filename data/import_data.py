@@ -4,8 +4,7 @@ It reads the 'artists.csv' and 'conflicts.csv' files from the same directory
 and provides them as Pandas DataFrames for use in the optimization pipeline.
 """
 
-import pandas as pd
-import os
+from utils import *
 
 # Get the directory of the current script
 script_directory = os.path.dirname(os.path.abspath(__file__))

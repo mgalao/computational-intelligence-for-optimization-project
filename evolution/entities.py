@@ -341,7 +341,7 @@ class Individual(Solution):
         normalized_conflict_penalty = sum(conflicts) / maximum_possible_conflict 
 
         # Final fitness 
-        slot_fitness = (normalized_genre_diversity - normalized_conflict_penalty) / 2
+        slot_fitness = (normalized_genre_diversity - normalized_conflict_penalty) 
 
         return slot_fitness
 

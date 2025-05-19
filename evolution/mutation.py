@@ -9,8 +9,7 @@ in a genetic algorithm. The mutations include:
 """
 
 from evolution.entities import Individual
-from copy import deepcopy
-import random
+from utils import *
 
 def n_swap_mutation(
     individual: 'Individual',

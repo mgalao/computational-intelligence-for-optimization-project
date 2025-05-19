@@ -10,10 +10,7 @@ of two parent individuals in a genetic algorithm. The crossovers include:
 
 from evolution.entities import Individual
 from data.import_data import artists
-from copy import deepcopy
-import random
-from random import choice
-from collections import Counter
+from utils import *
 
 def pmx_crossover(
     p1: 'Individual',

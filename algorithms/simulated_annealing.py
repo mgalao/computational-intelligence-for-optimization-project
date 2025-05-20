@@ -1,6 +1,8 @@
 from algorithms.genetic_algorithm.entities import Solution
 from utils import *
 
+#Algorithm defined in class
+
 def simulated_annealing(
     initial_solution: Solution,
     C: float,

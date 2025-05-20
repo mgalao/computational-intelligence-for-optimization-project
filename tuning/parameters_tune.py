@@ -63,9 +63,11 @@ def random_search(
         for run in range(n_runs):
             print(f'  Run {run + 1}/{n_runs}')
 
+            #  Apply partial to mutation operator 
             mutation = partial(mutation_base, n_swaps=n_swaps)
             selection = partial(selection_base, tournament_size=tournament_size)
 
+            #  Run GA 
             population = Population(population_size=pop_size, crossover_function=crossover, mutation_function=mutation)
 
             fitness_history, _ = genetic_algorithm(
@@ -81,6 +83,7 @@ def random_search(
 
             run_histories.append(fitness_history)
 
+        #  Store Results 
         if mode == 'detailed':
             results.append({
                 'xo_prob': xo_prob,

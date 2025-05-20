@@ -6,6 +6,24 @@ It includes functions for selection, crossover, mutation, and elitism.
 from algorithms.genetic_algorithm.entities import *
 from utils import *
 
+def get_best_ind(
+    population: list[Solution], 
+    maximization: bool
+) -> 'Individual':
+    """
+    Returns the best individual from the population based on fitness.
+    """
+    
+    # Get the fitness of each individual in the population
+    fitness_list = [ind.fitness() for ind in population]
+
+    # If maximization is True, return the individual with the highest fitness
+    if maximization:
+        return population[fitness_list.index(max(fitness_list))]
+    # If maximization is False, return the individual with the lowest fitness
+    else:
+        return population[fitness_list.index(min(fitness_list))]
+
 def genetic_algorithm(
     initial_population: 'Population',
     max_gen: int,

@@ -7,7 +7,7 @@ import random
 from functools import partial
 from copy import deepcopy
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Optional
 from itertools import combinations, product
 from collections import Counter
 

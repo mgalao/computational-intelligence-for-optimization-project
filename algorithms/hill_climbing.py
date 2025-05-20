@@ -1,5 +1,4 @@
-
-from evolution.entities import Solution
+from algorithms.genetic_algorithm.entities import Solution
 from utils import *
 
 def hill_climbing(initial_solution: Solution, maximization=False, max_iter=99999, verbose=False):

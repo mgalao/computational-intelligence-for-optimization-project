@@ -6,7 +6,7 @@ in a genetic algorithm. The selection methods include:
 3. tournament_selection: Selects the best individual from a randomly chosen subset of the population.
 """
 
-from evolution.entities import *
+from algorithms.genetic_algorithm.entities import *
 from utils import *
 
 def fitness_proportionate_selection(

@@ -8,7 +8,7 @@ of two parent individuals in a genetic algorithm. The crossovers include:
    and then repairs the individual to ensure each artist appears exactly once.
 """
 
-from evolution.entities import Individual
+from algorithms.genetic_algorithm.entities import Individual
 from data.import_data import artists
 from utils import *
 
@@ -190,7 +190,7 @@ def fitness_based_slot_crossover(
                 if not available_missing:
                     break  # No more missing artists to assign
 
-                replaced_with = choice(available_missing)
+                replaced_with = random.choice(available_missing)
                 # Print replacement details
                 if verbose:
                     print(f"Replacing duplicate artist {artist} in slot {i}, stage {j} with missing artist {replaced_with}")

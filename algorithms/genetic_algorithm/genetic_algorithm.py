@@ -3,9 +3,8 @@ This module implements a genetic algorithm for optimizing a population of soluti
 It includes functions for selection, crossover, mutation, and elitism.
 """
 
-from evolution.entities import *
+from algorithms.genetic_algorithm.entities import *
 from utils import *
-
 
 def get_best_ind(
     population: list[Solution], 

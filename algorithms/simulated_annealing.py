@@ -1,6 +1,4 @@
-
-
-from evolution.entities import Solution
+from algorithms.genetic_algorithm.entities import Solution
 from utils import *
 
 def simulated_annealing(

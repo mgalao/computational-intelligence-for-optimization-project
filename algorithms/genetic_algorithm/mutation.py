@@ -8,7 +8,7 @@ in a genetic algorithm. The mutations include:
    and randomly redistributes the artists from the remaining slots.
 """
 
-from evolution.entities import Individual
+from algorithms.genetic_algorithm.entities import Individual
 from utils import *
 
 def n_swap_mutation(

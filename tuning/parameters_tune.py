@@ -18,13 +18,27 @@ pop_size = 50
 elitism = True
 maximization = True
 
-n_iterations = 2
+n_iterations = 25
 
 
-
-def random_search(mutation_base=mutation_base, crossover=crossover, selection_base=selection_base,
-    n_iterations=n_iterations, n_runs=n_runs, n_generations=n_generations, pop_size=pop_size, elitism=elitism, maximization=maximization,
-    verbose_ga=True, mode='summary', seed=None):
+def random_search(
+    mutation_base=mutation_base,
+    crossover=crossover,
+    selection_base=selection_base,
+    n_iterations=n_iterations,
+    n_runs=n_runs,
+    n_generations=n_generations,
+    pop_size=pop_size,
+    elitism=elitism,
+    maximization=maximization,
+    xo_range=(0.6, 1.0),             
+    mut_range=(0.05, 0.4),           
+    swap_range=(2, 5),               
+    tournament_range=(2, 10),       
+    verbose_ga=True,
+    mode='summary',
+    seed=None
+):
     if seed is not None:
         random.seed(seed)
 
@@ -33,10 +47,10 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection_ba
 
     while len(results) < n_iterations:
         # --- Sample hyperparameters ---
-        xo_prob = round(random.uniform(0.6, 1.0), 2)
-        mut_prob = round(random.uniform(0.05, 0.4), 2)
-        n_swaps = random.randint(2, 10)
-        tournament_size = random.randint(2, 10)
+        xo_prob = round(random.uniform(*xo_range), 2)
+        mut_prob = round(random.uniform(*mut_range), 2)
+        n_swaps = random.randint(*swap_range)
+        tournament_size = random.randint(*tournament_range)
 
         # Check for duplicates
         config_key = (xo_prob, mut_prob, n_swaps)
@@ -44,17 +58,15 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection_ba
             continue
         tried_configs.add(config_key)
 
-        print(f'Configuration {len(results)+1}: xo_prob={xo_prob}, mut_prob={mut_prob}, n_swaps={n_swaps}')
+        print(f'Configuration {len(results)+1}: xo_prob={xo_prob}, mut_prob={mut_prob}, n_swaps={n_swaps}, tournament_size={tournament_size}')
         run_histories = []
 
         for run in range(n_runs):
             print(f'  Run {run + 1}/{n_runs}')
 
-            # --- Apply partial to mutation operator ---
             mutation = partial(mutation_base, n_swaps=n_swaps)
             selection = partial(selection_base, tournament_size=tournament_size)
 
-            # --- Run GA ---
             population = Population(population_size=pop_size, crossover_function=crossover, mutation_function=mutation)
 
             fitness_history, _ = genetic_algorithm(
@@ -70,26 +82,24 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection_ba
 
             run_histories.append(fitness_history)
 
-        # --- Store Results ---
         if mode == 'detailed':
             results.append({
                 'xo_prob': xo_prob,
                 'mut_prob': mut_prob,
                 'n_swaps': n_swaps,
+                'tournament_size': tournament_size,
                 'fitness_history': json.dumps(run_histories)
             })
-        else:  # summary: average best fitness across runs
+        else:
             best_fitnesses = [max(h) if maximization else min(h) for h in run_histories]
             avg_best = sum(best_fitnesses) / n_runs
             results.append({
                 'xo_prob': xo_prob,
                 'mut_prob': mut_prob,
                 'n_swaps': n_swaps,
+                'tournament_size': tournament_size,
                 'avg_best_fitness': avg_best
             })
 
-    df = pd.DataFrame(results)
-#    filename = 'random_search_detailed.csv' if mode == 'detailed' else 'random_search_summary.csv'
-#    df.to_csv(filename, index=False, quoting=csv.QUOTE_NONNUMERIC if mode == 'detailed' else csv.QUOTE_MINIMAL)
+    return pd.DataFrame(results)
 
-    return df

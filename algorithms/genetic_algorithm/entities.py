@@ -6,6 +6,7 @@ A 'Population' class is also defined to manage a collection of unique individual
 """
 
 from data.import_data import artists, conflicts_matrix
+from algorithms.genetic_algorithm.mutation import n_swap_mutation 
 from utils import *
 
 class Solution(ABC):
@@ -385,7 +386,7 @@ class Individual(Solution):
         """
         Returns a random neighbor by applying a 2-swap mutation to the current individual.
         """
-        from algorithms.genetic_algorithm.mutation import n_swap_mutation 
+
         mutated_repr = n_swap_mutation(self, mut_prob=1, n_swaps=2)
         try:
             return Individual(
@@ -404,7 +405,7 @@ class Individual(Solution):
         Generates 5 valid neighbors by applying 2-swap mutations.
         Skips invalid individuals and retries until 5 are collected or a max number of attempts is reached.
         """
-        from algorithms.genetic_algorithm.mutation import n_swap_mutation 
+
         neighbors = []
         max_attempts = 20  # prevents infinite loops if many mutations are invalid
 

@@ -2,7 +2,7 @@ from algorithms.genetic_algorithm.entities import Solution
 from utils import *
 #Algorithm defined in class
 
-def hill_climbing(initial_solution: Solution, maximization=False, max_iter=99999, verbose=False):
+def hill_climbing(initial_solution: Solution, maximization=True, max_iter=99999, verbose=False):
     """
     Implementation of the Hill Climbing optimization algorithm.  
 
@@ -35,7 +35,7 @@ def hill_climbing(initial_solution: Solution, maximization=False, max_iter=99999
             print(f'Current solution: {current} with fitness {current.fitness()}')
 
         improved = False
-        neighbors = current.get_neighbors() # Solution must have a get_neighbors() method
+        neighbors = current.get_neighbors()
 
         for neighbor in neighbors:
 

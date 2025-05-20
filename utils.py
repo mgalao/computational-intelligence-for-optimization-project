@@ -125,11 +125,6 @@ def plot_fitness(fitness_dfs, title_suffix=""):
 
     fig.show()
 
-
-import matplotlib.pyplot as plt
-import seaborn as sns
-import matplotlib.patches as mpatches
-
 def plot_final_fitness_boxplots(fitness_dfs, title_suffix=''):
     data = []
     for config_label, df in fitness_dfs.items():
@@ -344,10 +339,10 @@ def plot_component_comparisons_from_curves(selection_curves, crossover_curves, m
     fig.show()
 
 def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df):
-    # Step 1: Mean fitness
+    # Mean fitness
     mean_fitness = {cfg: np.mean(final_gen_fitness[cfg]) for cfg in best_configs}
 
-    # Step 2: Group by selection method
+    # Group by selection method
     def get_selection_method(cfg):
         return cfg.split('_')[0]
 
@@ -356,7 +351,7 @@ def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df
         method = get_selection_method(cfg)
         grouped_configs[method].append(cfg)
 
-    # Step 3: Strong color shades per group
+    # Strong color shades per group
     def get_strong_colors(hue_deg, n_colors):
         hue = hue_deg / 360
         return [
@@ -378,7 +373,7 @@ def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df
 
     sorted_configs = [cfg for method in sorted(grouped_configs) for cfg in sorted(grouped_configs[method])]
 
-    # Step 4: Fully connected graph with distance = 1 - p_value
+    # Fully connected graph with distance = 1 - p_value
     G = nx.Graph()
     for cfg1, cfg2 in combinations(best_configs, 2):
         p = p_values_df.loc[cfg1, cfg2]
@@ -386,10 +381,10 @@ def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df
         if not np.isnan(p):
             G.add_edge(cfg1, cfg2, weight=1 - p)
 
-    # Step 5: Layout with distance = dissimilarity
+    # Layout with distance = dissimilarity
     pos = nx.spring_layout(G, weight='weight', seed=42)
 
-    # Step 6: Edges
+    # Edges
     edge_x, edge_y = [], []
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
@@ -405,7 +400,7 @@ def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df
         showlegend=False
     )
 
-    # Step 7: Nodes
+    # Nodes
     node_traces = []
     for cfg in sorted_configs:
         if cfg not in G.nodes:
@@ -421,7 +416,7 @@ def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df
             showlegend=True
         ))
 
-    # Step 8: Layout
+    # Layout
     fig = go.Figure(data=[edge_trace] + node_traces)
     fig.update_layout(
         title="Statistical Distance Between Configurations (Node Distance ∝ Dissimilarity)",

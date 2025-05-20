@@ -42,12 +42,12 @@ def simulated_annealing(
     if verbose:
         print(f'Initial solution: {current_solution.repr} with fitness {current_solution.fitness()}')
 
-    # 2. Repeat until termination condition
+    # Repeat until termination condition
     while iter <= max_iter:
     
-        # 2.1 For L times
+        # For L times
         for _ in range(L):
-            # 2.1.1 Get random neighbor
+            # Get random neighbor
             random_neighbor = current_solution.get_random_neighbor()
 
             neighbor_fitness = random_neighbor.fitness()
@@ -56,7 +56,7 @@ def simulated_annealing(
             if verbose:
                 print(f"Random neighbor {random_neighbor} with fitness: {neighbor_fitness}")
 
-            # 2.1.2 Decide if neighbor is accepted as new solution
+            # Decide if neighbor is accepted as new solution
             # If neighbor is better, accept it
             if (
                 (maximization and (neighbor_fitness >= current_fitness))
@@ -91,7 +91,7 @@ def simulated_annealing(
             if verbose:
                 print(f"New current solution {current_solution} with fitness {current_solution.fitness()}")
 
-        # 2.2 Update C
+        # Update C
         C = C / H
         if verbose:
             print(f'Decreased C. New value: {C}')
@@ -102,5 +102,5 @@ def simulated_annealing(
     if verbose:
         print(f'Best solution found: {current_solution.repr} with fitness {current_solution.fitness()}')
     
-    # 3. Return solution
+    # Return solution
     return current_solution

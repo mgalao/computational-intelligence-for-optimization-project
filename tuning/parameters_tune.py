@@ -29,7 +29,7 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection_ba
     results = []
 
     while len(results) < n_iterations:
-        # --- Sample hyperparameters ---
+        #  Sample hyperparameters 
         xo_prob = round(random.uniform(0.6, 1.0), 2)
         mut_prob = round(random.uniform(0.05, 0.4), 2)
         n_swaps = random.randint(2, 10)
@@ -47,11 +47,11 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection_ba
         for run in range(n_runs):
             print(f'  Run {run + 1}/{n_runs}')
 
-            # --- Apply partial to mutation operator ---
+            #  Apply partial to mutation operator 
             mutation = partial(mutation_base, n_swaps=n_swaps)
             selection = partial(selection_base, tournament_size=tournament_size)
 
-            # --- Run GA ---
+            #  Run GA 
             population = Population(population_size=pop_size, crossover_function=crossover, mutation_function=mutation)
 
             fitness_history, _ = genetic_algorithm(
@@ -67,7 +67,7 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection_ba
 
             run_histories.append(fitness_history)
 
-        # --- Store Results ---
+        #  Store Results 
         if mode == 'detailed':
             results.append({
                 'xo_prob': xo_prob,

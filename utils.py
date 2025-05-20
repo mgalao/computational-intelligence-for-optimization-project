@@ -20,3 +20,317 @@ from scipy.stats import skew, kurtosis, wilcoxon
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.patches as mpatches
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
+from collections import defaultdict
+
+def plot_fitness(fitness_dfs, title_suffix=""):
+
+    # Each selection method has a specifi color to be easier to distinguis
+    method_palettes = {
+        'ranking': [
+            "#49006a", "#7a0177", "#ae017e",
+            "#67001f", "#980043", "#ce1256",
+            "#df65b0", "#88419d"
+        ],
+        'fitness_proportionate': [
+            "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+            "#377eb8", "#02818a"
+        ],
+        'tournament': [
+            "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#d73027", "#f46d43",
+            "#ff7f00", "#993404"
+
+        ]
+    }
+
+    # This section was made with the help of ChatGPT, basically it counts how many times a color has appeared to not repeat it
+    method_color_index = defaultdict(int)
+
+    def get_color_for_config(name):
+        for method in method_palettes:
+            if name.startswith(method):
+                color_list = method_palettes[method]
+                color = color_list[method_color_index[method] % len(color_list)]
+                method_color_index[method] += 1
+                return color
+        return '#999999'  # fallback gray
+
+    # Sorting items by fitness so they appear in a cleaner format
+    sorted_items = sorted(
+        fitness_dfs.items(),
+        key=lambda x: x[1].mean(axis=0).iloc[-1],
+        reverse=True
+    )
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("Mean Fitness", "Median Fitness"),
+        shared_yaxes=True,
+        horizontal_spacing=0.1
+    )
+
+    for i, (config_name, df) in enumerate(sorted_items):
+        mean_fitness = df.mean(axis=0)
+        median_fitness = df.median(axis=0)
+        display_name = config_name.replace("_", " ")
+        color = get_color_for_config(config_name)
+
+        show_legend = i < 10
+
+        fig.add_trace(go.Scatter(
+            x=mean_fitness.index,
+            y=mean_fitness.values,
+            mode='lines',
+            name=display_name,
+            legendgroup=config_name,
+            showlegend=show_legend,
+            line=dict(color=color),
+            hovertemplate=f"{display_name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=1)
+
+        fig.add_trace(go.Scatter(
+            x=median_fitness.index,
+            y=median_fitness.values,
+            mode='lines',
+            name=display_name,
+            legendgroup=config_name,
+            showlegend=False,
+            line=dict(color=color),
+            hovertemplate=f"{display_name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=2)
+
+    fig.update_layout(
+            title_text=f"Fitness Across Generations - {title_suffix}",
+            template="simple_white",
+            height=600,
+            width=1700,
+            margin=dict(l=40, r=250, t=60, b=60),
+            legend=dict(
+            title="Configurations",
+            orientation="v",
+            y=1,
+            x=1.02,
+            font=dict(size=10)
+        )
+    )
+
+    fig.update_xaxes(title_text="Generation", row=1, col=1)
+    fig.update_xaxes(title_text="Generation", row=1, col=2)
+    fig.update_yaxes(title_text="Fitness", row=1, col=1)
+
+    fig.show()
+
+
+def plot_final_fitness_boxplots(fitness_dfs, title_suffix=''):
+    data = []
+    for config_label, df in fitness_dfs.items():
+        final_gen_fitness = df.iloc[:, -1].values
+        for value in final_gen_fitness:
+            data.append({'Fitness': value, 'Configuration': config_label})
+    df_long = pd.DataFrame(data)
+
+    # Sort by median for cleaner aesthetic 
+    medians = df_long.groupby('Configuration')['Fitness'].median().sort_values(ascending=False)
+    df_long['Configuration'] = pd.Categorical(df_long['Configuration'], categories=medians.index, ordered=True)
+
+    # Each selection method has a specifi color to be easier to distinguish (again)
+    method_palettes = {
+        'ranking': [
+            "#49006a", "#7a0177", "#ae017e",
+            "#67001f", "#980043", "#ce1256",
+            "#df65b0", "#88419d"
+        ],
+        'fitness_proportionate': [
+            "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+            "#377eb8", "#02818a"
+        ],
+        'tournament': [
+            "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#d73027", "#f46d43",
+            "#ff7f00", "#993404"
+
+        ]
+    }
+    method_color_index = defaultdict(int)
+    config_color_map = {}
+
+    for config in medians.index:
+        for method in method_palettes:
+            if config.startswith(method):
+                palette = method_palettes[method]
+                color = palette[method_color_index[method] % len(palette)]
+                config_color_map[config] = color
+                method_color_index[method] += 1
+                break
+        else:
+            config_color_map[config] = "#888888"  # fallback
+
+    fig = px.box(
+        df_long,
+        x="Fitness",
+        y="Configuration",
+        color="Configuration",
+        color_discrete_map=config_color_map,
+        points="outliers",
+        hover_data={"Configuration": True, "Fitness": ':.4f'},
+        height=max(600, 25 * len(medians)),
+        title=f"Final Generation Fitness per Run ({title_suffix})" if title_suffix else "Final Generation Fitness per Run",
+    )
+
+    fig.update_layout(
+        boxmode='group',
+        template='simple_white',
+        margin=dict(l=100, r=40, t=60, b=60),
+        yaxis_title='Configuration',
+        xaxis_title='Final Generation Fitness',
+        legend=dict(orientation='v', x=1.02, y=1),
+        showlegend=False  # disable legend since labels are shown
+    )
+
+    fig.show()
+
+
+def plot_component_comparisons(selection_fit_dfs, crossover_fit_dfs, mutation_fit_dfs):
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=("Selection Comparison", "Crossover Comparison", "Mutation Comparison"),
+        shared_yaxes=True,
+        horizontal_spacing=0.08
+    )
+
+    # Selection
+    for name, df in selection_fit_dfs.items():
+        median_fitness = df.median(axis=0)
+        fig.add_trace(go.Scatter(
+            x=median_fitness.index,
+            y=median_fitness.values,
+            mode='lines',
+            name=f"[Selection] {name.replace('_', ' ')}",
+            legendgroup="selection",
+            showlegend=True,
+            hovertemplate=f"{name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=1)
+
+    # Crossover
+    for name, df in crossover_fit_dfs.items():
+        median_fitness = df.median(axis=0)
+        fig.add_trace(go.Scatter(
+            x=median_fitness.index,
+            y=median_fitness.values,
+            mode='lines',
+            name=f"[Crossover] {name.replace('_', ' ')}",
+            legendgroup="crossover",
+            showlegend=True,
+            hovertemplate=f"{name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=2)
+
+    # Mutation
+    for name, df in mutation_fit_dfs.items():
+        median_fitness = df.median(axis=0)
+        fig.add_trace(go.Scatter(
+            x=median_fitness.index,
+            y=median_fitness.values,
+            mode='lines',
+            name=f"[Mutation] {name.replace('_', ' ')}",
+            legendgroup="mutation",
+            showlegend=True,
+            hovertemplate=f"{name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=3)
+
+    fig.update_layout(
+        height=600,
+        width=1700,
+        title="Operator Comparison: Median Fitness Over Generations",
+        template="simple_white",
+        legend=dict(
+            orientation="v",
+            x=1.01,
+            y=1,
+            title="Legend",
+            font=dict(size=11)
+        ),
+        margin=dict(l=60, r=250, t=60, b=50),
+        showlegend=True
+    )
+
+    # Remove grid from axes
+    for i in range(1, 4):
+        fig.update_xaxes(showgrid=False, row=1, col=i)
+        fig.update_yaxes(showgrid=False, row=1, col=i)
+
+    fig.update_xaxes(title_text="Generation", row=1, col=1)
+    fig.update_xaxes(title_text="Generation", row=1, col=2)
+    fig.update_xaxes(title_text="Generation", row=1, col=3)
+    fig.update_yaxes(title_text="Fitness", row=1, col=1)
+
+    fig.show()
+
+
+def plot_component_comparisons_from_curves(selection_curves, crossover_curves, mutation_curves):
+    fig = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=("Selection Comparison", "Crossover Comparison", "Mutation Comparison"),
+        shared_yaxes=True,
+        horizontal_spacing=0.08
+    )
+
+    #  Selection 
+    for name, curve in selection_curves.items():
+        fig.add_trace(go.Scatter(
+            x=list(range(len(curve))),
+            y=curve,
+            mode='lines',
+            name=f"[Selection] {name.replace('_', ' ')}",
+            legendgroup="selection",
+            showlegend=True,
+            hovertemplate=f"{name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=1)
+
+    #  Crossover 
+    for name, curve in crossover_curves.items():
+        fig.add_trace(go.Scatter(
+            x=list(range(len(curve))),
+            y=curve,
+            mode='lines',
+            name=f"[Crossover] {name.replace('_', ' ')}",
+            legendgroup="crossover",
+            showlegend=True,
+            hovertemplate=f"{name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=2)
+
+    #  Mutation 
+    for name, curve in mutation_curves.items():
+        fig.add_trace(go.Scatter(
+            x=list(range(len(curve))),
+            y=curve,
+            mode='lines',
+            name=f"[Mutation] {name.replace('_', ' ')}",
+            legendgroup="mutation",
+            showlegend=True,
+            hovertemplate=f"{name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=3)
+
+    fig.update_layout(
+        height=600,
+        width=1700,
+        title="Operator Comparison: Median of Medians Over Generations",
+        template="simple_white",
+        legend=dict(
+            orientation="v",
+            x=1.01,
+            y=1,
+            title="Legend",
+            font=dict(size=11)
+        ),
+        margin=dict(l=60, r=250, t=60, b=50),
+        showlegend=True
+    )
+
+    for i in range(1, 4):
+        fig.update_xaxes(showgrid=False, title_text="Generation", row=1, col=i)
+        fig.update_yaxes(showgrid=False, title_text="Fitness" if i == 1 else "", row=1, col=i)
+
+    fig.show()
+
+

@@ -24,6 +24,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 from collections import defaultdict
+import networkx as nx
+import matplotlib.colors as mcolors
+from colorsys import hls_to_rgb
 
 def plot_fitness(fitness_dfs, title_suffix=""):
 
@@ -340,4 +343,102 @@ def plot_component_comparisons_from_curves(selection_curves, crossover_curves, m
 
     fig.show()
 
+def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df):
+    # Step 1: Mean fitness
+    mean_fitness = {cfg: np.mean(final_gen_fitness[cfg]) for cfg in best_configs}
 
+    # Step 2: Group by selection method
+    def get_selection_method(cfg):
+        return cfg.split('_')[0]
+
+    grouped_configs = defaultdict(list)
+    for cfg in best_configs:
+        method = get_selection_method(cfg)
+        grouped_configs[method].append(cfg)
+
+    # Step 3: Strong color shades per group
+    def get_strong_colors(hue_deg, n_colors):
+        hue = hue_deg / 360
+        return [
+            mcolors.to_hex(hls_to_rgb(hue, l, 0.95))
+            for l in np.linspace(0.35, 0.6, n_colors)
+        ]
+
+    hue_map = {
+        'fitness': 120,
+        'ranking': 270,
+        'tournament': 30
+    }
+
+    color_map = {}
+    for method, cfgs in grouped_configs.items():
+        shades = get_strong_colors(hue_map[method], len(cfgs))
+        for cfg, color in zip(sorted(cfgs), shades):
+            color_map[cfg] = color
+
+    sorted_configs = [cfg for method in sorted(grouped_configs) for cfg in sorted(grouped_configs[method])]
+
+    # Step 4: Fully connected graph with distance = 1 - p_value
+    G = nx.Graph()
+    for cfg1, cfg2 in combinations(best_configs, 2):
+        p = p_values_df.loc[cfg1, cfg2]
+        # Protect against NaNs or invalid p-values
+        if not np.isnan(p):
+            G.add_edge(cfg1, cfg2, weight=1 - p)
+
+    # Step 5: Layout with distance = dissimilarity
+    pos = nx.spring_layout(G, weight='weight', seed=42)
+
+    # Step 6: Edges
+    edge_x, edge_y = [], []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1, color='lightgray'),
+        hoverinfo='none',
+        mode='lines',
+        showlegend=False
+    )
+
+    # Step 7: Nodes
+    node_traces = []
+    for cfg in sorted_configs:
+        if cfg not in G.nodes:
+            continue
+        x, y = pos[cfg]
+        node_traces.append(go.Scatter(
+            x=[x], y=[y],
+            mode='markers',
+            marker=dict(size=22, color=color_map[cfg], line=dict(color='black', width=1)),
+            hovertemplate=f"{cfg}<br>Mean Final Fitness: {mean_fitness[cfg]:.4f}<extra></extra>",
+            name=cfg,
+            legendgroup=get_selection_method(cfg),
+            showlegend=True
+        ))
+
+    # Step 8: Layout
+    fig = go.Figure(data=[edge_trace] + node_traces)
+    fig.update_layout(
+        title="Statistical Distance Between Configurations (Node Distance ∝ Dissimilarity)",
+        title_font_size=16,
+        showlegend=True,
+        legend_title="Configurations Grouped by Selection Method",
+        legend=dict(
+            font=dict(size=10),
+            traceorder='normal',
+            itemsizing='trace',
+            x=1.02,
+            y=1,
+            bgcolor='rgba(255,255,255,0)',
+        ),
+        margin=dict(l=40, r=250, t=60, b=40),
+        plot_bgcolor='white',
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+    )
+    fig.show()

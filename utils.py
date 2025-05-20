@@ -123,19 +123,21 @@ def plot_fitness(fitness_dfs, title_suffix=""):
     fig.show()
 
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.patches as mpatches
+
 def plot_final_fitness_boxplots(fitness_dfs, title_suffix=''):
     data = []
     for config_label, df in fitness_dfs.items():
-        final_gen_fitness = df.iloc[:, -1].values
+        final_gen_fitness = df.iloc[:, -1].values  # final generation fitness
         for value in final_gen_fitness:
             data.append({'Fitness': value, 'Configuration': config_label})
     df_long = pd.DataFrame(data)
 
-    # Sort by median for cleaner aesthetic 
     medians = df_long.groupby('Configuration')['Fitness'].median().sort_values(ascending=False)
     df_long['Configuration'] = pd.Categorical(df_long['Configuration'], categories=medians.index, ordered=True)
 
-    # Each selection method has a specifi color to be easier to distinguish (again)
     method_palettes = {
         'ranking': [
             "#49006a", "#7a0177", "#ae017e",
@@ -152,43 +154,48 @@ def plot_final_fitness_boxplots(fitness_dfs, title_suffix=''):
 
         ]
     }
+
+    from collections import defaultdict
     method_color_index = defaultdict(int)
-    config_color_map = {}
+    config_colors = {}
 
     for config in medians.index:
         for method in method_palettes:
             if config.startswith(method):
                 palette = method_palettes[method]
                 color = palette[method_color_index[method] % len(palette)]
-                config_color_map[config] = color
+                config_colors[config] = color
                 method_color_index[method] += 1
                 break
         else:
-            config_color_map[config] = "#888888"  # fallback
+            config_colors[config] = '#999999'  # fallback gray
 
-    fig = px.box(
-        df_long,
-        x="Fitness",
-        y="Configuration",
-        color="Configuration",
-        color_discrete_map=config_color_map,
-        points="outliers",
-        hover_data={"Configuration": True, "Fitness": ':.4f'},
-        height=max(600, 25 * len(medians)),
-        title=f"Final Generation Fitness per Run ({title_suffix})" if title_suffix else "Final Generation Fitness per Run",
+    height = max(6, 0.4 * len(medians))
+    plt.figure(figsize=(14, height))
+    
+    ax = sns.boxplot(
+        y='Configuration',
+        x='Fitness',
+        data=df_long,
+        palette=config_colors,
+        linewidth=2,
+        fliersize=3,
+        width=0.6,
+        orient='h'
     )
 
-    fig.update_layout(
-        boxmode='group',
-        template='simple_white',
-        margin=dict(l=100, r=40, t=60, b=60),
-        yaxis_title='Configuration',
-        xaxis_title='Final Generation Fitness',
-        legend=dict(orientation='v', x=1.02, y=1),
-        showlegend=False  # disable legend since labels are shown
-    )
+    title = 'Final Generation Fitness per Run'
+    if title_suffix:
+        title += f' ({title_suffix})'
+    plt.title(title, fontsize=16, weight='bold')
+    plt.xlabel('Final Generation Fitness', fontsize=13)
+    plt.ylabel('Configuration', fontsize=13)
 
-    fig.show()
+    # Styling
+    plt.grid(True, axis='x', linestyle='--', alpha=0.5)
+    sns.despine(left=True, bottom=True)
+    plt.tight_layout()
+    plt.show()
 
 
 def plot_component_comparisons(selection_fit_dfs, crossover_fit_dfs, mutation_fit_dfs):

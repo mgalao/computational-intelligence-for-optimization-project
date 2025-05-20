@@ -1,9 +1,8 @@
-from evolution.entities import Population
-from evolution.selection import (fitness_proportionate_selection, ranking_selection, tournament_selection)
-from evolution.crossover import (pmx_crossover, fitness_based_slot_crossover)
-from evolution.mutation import (n_swap_mutation,scramble_mutation,prime_slot_swap_mutation,preserve_best_slots_mutation)
-from evolution.algorithm import genetic_algorithm
-from evolution.entities import Population
+from algorithms.genetic_algorithm.entities import Population
+from algorithms.genetic_algorithm.selection import (fitness_proportionate_selection, ranking_selection, tournament_selection)
+from algorithms.genetic_algorithm.crossover import (pmx_crossover, fitness_based_slot_crossover)
+from algorithms.genetic_algorithm.mutation import (n_swap_mutation,scramble_mutation,prime_slot_swap_mutation,preserve_best_slots_mutation)
+from algorithms.genetic_algorithm.genetic_algorithm import genetic_algorithm
 
 from utils import *
 
@@ -19,8 +18,6 @@ elitism = True
 maximization = True
 
 n_iterations = 2
-
-
 
 def random_search(mutation_base=mutation_base, crossover=crossover, selection_base=selection_base,
     n_iterations=n_iterations, n_runs=n_runs, n_generations=n_generations, pop_size=pop_size, elitism=elitism, maximization=maximization,
@@ -89,7 +86,5 @@ def random_search(mutation_base=mutation_base, crossover=crossover, selection_ba
             })
 
     df = pd.DataFrame(results)
-#    filename = 'random_search_detailed.csv' if mode == 'detailed' else 'random_search_summary.csv'
-#    df.to_csv(filename, index=False, quoting=csv.QUOTE_NONNUMERIC if mode == 'detailed' else csv.QUOTE_MINIMAL)
 
     return df

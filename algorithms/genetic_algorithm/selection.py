@@ -45,15 +45,17 @@ def fitness_proportionate_selection(
     return deepcopy(selected_indiv)
 
 def ranking_selection(population):
-    probabilities = []
     sorted_population = sorted(population, key=lambda indiv: indiv.fitness(), reverse=True)
 
-    ranking_position = range(1,len(population)+1)
+    max_rank = len(population)
+    ranking_position = range(1, max_rank + 1)
 
-    for position in ranking_position: probabilities.append(1-(position/sum(ranking_position)))
+    raw_weights = [max_rank - pos + 1 for pos in ranking_position]
+
+    total = sum(raw_weights)
+    probabilities = [w / total for w in raw_weights]
 
     selected_indiv = random.choices(sorted_population, weights=probabilities, k=1)[0]
-
     return deepcopy(selected_indiv)
 
 def tournament_selection(population, tournament_size=4):

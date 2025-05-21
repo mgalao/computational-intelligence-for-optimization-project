@@ -105,18 +105,23 @@ class Individual(Solution):
 
         return f"Fitness: {self.fitness():.4f}\n{matrix_str}"
     
-    def print_artists_names(self):
+    def print_artist_details(self):
         """
-        Returns a string representation of the individual using artist names
-        instead of IDs. Includes the fitness score.
+        Returns a string representation of the individual using artist names,
+        genres, and popularity instead of IDs. Includes the fitness score.
         """
 
-        # Create a string representation of the matrix using artist names
-        matrix_str = "\n".join(
-            [f"Slot {i+1}: {[self.artists.loc[artist_id, 'name'] for artist_id in row]}"
-            for i, row in enumerate(self.repr)]
-        )
-        
+        # Build string matrix with artist details
+        matrix_str = "\n".join([
+            f"Slot {i+1}: " + str([
+                f"{self.artists.loc[artist_id, 'name']} "
+                f"(Genre: {self.artists.loc[artist_id, 'genre']}, "
+                f"Popularity: {self.artists.loc[artist_id, 'popularity']})"
+                for artist_id in row
+            ])
+            for i, row in enumerate(self.repr)
+        ])
+
         return f"Fitness: {self.fitness():.4f}\n{matrix_str}"
     
     def _validate_repr(self, repr):

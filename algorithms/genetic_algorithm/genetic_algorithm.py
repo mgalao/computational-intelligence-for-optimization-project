@@ -23,6 +23,30 @@ def get_best_ind(
     # If maximization is False, return the individual with the lowest fitness
     else:
         return population[fitness_list.index(min(fitness_list))]
+    
+
+def diversify_population(population, percentage=0.5):
+    """
+    Injects diversity by replacing the weakest 50% individuals in a Population.
+    """
+
+    num_to_replace = int(len(population) * percentage)
+
+    # Get a sorted list of individuals by fitness
+    sorted_inds = sorted(population, key=lambda indiv: indiv.fitness(), reverse=True)
+
+    # Access internal list safely (not assuming population is a list)
+    individuals = population._Population__dict__["individuals"] if hasattr(population, "_Population__dict__") else population.__dict__["individuals"]
+
+    # Replace the weakest individuals at the end
+    for i in range(1, num_to_replace + 1):
+        new_individual = Individual(
+            crossover_function=sorted_inds[0].crossover_function,
+            mutation_function=sorted_inds[0].mutation_function
+        )
+        individuals[-i] = new_individual
+
+
 
 def genetic_algorithm(
     initial_population: 'Population',
@@ -30,14 +54,15 @@ def genetic_algorithm(
     selection_algorithm: Callable,
     maximization: bool = True,
     xo_prob: float = 0.9,
-    mut_prob: float = 0.2,
+    mut_prob: float = 0.1,
     elitism: bool = True,
-    verbose_ga: bool = True,
+    verbose_ga: Optional[str] = False,
     adapt_on_stable: bool = False,
     params: Optional[dict] = None,
     stability_window: int = 5,
-    stability_epsilon: float = 1e-3
-) -> 'Individual':
+    stability_epsilon: float = 1e-3,
+    diversify_on_plateau: bool = False,
+) -> tuple[list[float], 'Individual']:
     """
     Executes a genetic algorithm to optimize a population of solutions, with optional dynamic adaptation 
     of mutation and selection parameters when the population's fitness stabilizes.
@@ -69,7 +94,7 @@ def genetic_algorithm(
 
      # Repeat until termination condition
     for gen in range(1, max_gen + 1):
-        if verbose_ga:
+        if verbose_ga in ("minimal", "full", True):
             print(f'\n-------------- Generation: {gen} --------------')
 
         # Create an empty population P'
@@ -82,62 +107,96 @@ def genetic_algorithm(
         # Repeat until P' contains N individuals
         while len(new_population) < len(population):
             # Choose 2 individuals from P using a selection algorithm
-            first_ind = selection_algorithm(population, params=params) if adapt_on_stable else selection_algorithm(population)
-            second_ind = selection_algorithm(population, params=params) if adapt_on_stable else selection_algorithm(population)
+            first_ind = selection_algorithm(population)
+            second_ind = selection_algorithm(population)
 
-            if verbose_ga:
+            if verbose_ga in ("full", True):
                 print(f'\nSelected individuals:\n{first_ind}\n{second_ind}\n')
             
             # Choose an operator between crossover and replication
             # Apply the operator to generate the offspring
             if random.random() < xo_prob:
                 offspring1, offspring2 = first_ind.crossover(second_ind)
-                if verbose_ga:
+                if verbose_ga in ("full", True):
                     print(f'Applied crossover - offspring:')
             else:
                 offspring1, offspring2 = deepcopy(first_ind), deepcopy(second_ind)
-                if verbose_ga:
+                if verbose_ga in ("full", True):
                     print(f'Applied replication - offspring:')
 
-            if verbose_ga:
+            if verbose_ga in ("full", True):
                 print(f'{offspring1}\n{offspring2}')
 
             # Apply mutation to the offspring
-            first_new_ind = offspring1.mutation(mut_prob, params=params) if adapt_on_stable else offspring1.mutation(mut_prob)
+            first_new_ind = offspring1.mutation(mut_prob)
             
             # Insert the mutated individuals into P'
             new_population.append(first_new_ind)
 
-            if verbose_ga:
+            if verbose_ga in ("full", True):
                 print(f'\nFirst mutated individual:\n{first_new_ind}')
 
             if offspring2 is not None and len(new_population) < len(population):
-                second_new_ind = offspring2.mutation(mut_prob, params=params) if adapt_on_stable else offspring2.mutation(mut_prob)
+                second_new_ind = offspring2.mutation(mut_prob)
                 new_population.append(second_new_ind)
-                if verbose_ga:
+                if verbose_ga in ("full", True):
                     print(f'Second mutated individual:\n{second_new_ind}')
 
         # Replace P with P'
-        population = new_population
+        population.__dict__["individuals"] = new_population
         best_fitness = get_best_ind(population, maximization).fitness()
         fitness_history.append(best_fitness)
 
-        if verbose_ga:
-            print(f'\nBest individual fitness: {best_fitness:.4f}\n')
+        if verbose_ga in ("minimal", "full", True):
+            print(f'Best fitness: {best_fitness:.4f}')
 
         # EXTRA: Adaptation
         if adapt_on_stable and gen > stability_window:
             recent = fitness_history[-stability_window:]
             if np.std(recent) < stability_epsilon and (gen - last_adaptation_gen) >= adaptation_cooldown:
-                if verbose_ga:
+                if verbose_ga in ("minimal", "full", True):
                     print("Fitness plateau detected — adapting parameters...")
 
-                # Adjust mutation swaps
-                params["n_swaps"] = min(params["n_swaps"] + 1, params.get("max_swaps", 10))
+                # xo_prob = min(1.0, xo_prob + 0.025)
+                # mut_prob = min(1.0, mut_prob + 0.025)
+                if verbose_ga in ("minimal", "full", True):
+                    # print(f"adapting probabilities... xo_prob to {xo_prob:.2f}, mut_prob to {mut_prob:.2f}")
+                    # print(f" xo_prob to {xo_prob:.2f}, mut_prob to {mut_prob:.2f}")
+                    print("adapting parameters...")
 
-                # Reduce tournament size (lower selection pressure)
-                params["tournament_size"] = max(params["tournament_size"] - 1, params.get("min_tournament", 2))
+                for key in params.get("adapt_keys", []):
+                    current = params[key]
+                    direction = params["adapt_directions"].get(key, "up")
+                    max_key = f"max_{key}"
+                    min_key = f"min_{key}"
+
+                    if direction == "up" and max_key in params:
+                        params[key] = min(current + 1, params[max_key])
+                    elif direction == "down" and min_key in params:
+                        params[key] = max(current - 1, params[min_key])
+
+
+                if verbose_ga in ("minimal", "full", True):
+                    values = [f"{k}={params[k]}" for k in params.get("adapt_keys", []) if k in params]
+                    print("Adapted parameters: " + ", ".join(values))
+
+                # Re-wrap mutation and selection using updated params
+                mutation_function = partial(params["mutation_base"], **{k: params[k] for k in params["mutation_args"]})
+                selection_function = partial(params["selection_base"], **{k: params[k] for k in params["selection_args"]})
+
+                # Update mutation function of all individuals
+                for ind in population:
+                    ind.mutation_function = mutation_function
+
+                # Update selection function used in next generation
+                selection_algorithm = selection_function
 
                 last_adaptation_gen = gen
+
+                if diversify_on_plateau:
+                    if verbose_ga in ("minimal", "full", True):
+                        print("injecting diversity...")
+                    
+                    diversify_population(population)
 
     return fitness_history, get_best_ind(population, maximization)

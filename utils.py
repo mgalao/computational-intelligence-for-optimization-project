@@ -437,3 +437,91 @@ def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
     )
     fig.show()
+
+
+def plot_fine_tune(df_hp_tuning, title_suffix=''):
+    # Parse JSON strings if needed
+    if isinstance(df_hp_tuning['fitness_history'].iloc[0], str):
+        df_hp_tuning['fitness_history'] = df_hp_tuning['fitness_history'].apply(json.loads)
+
+    # Build long-form DataFrame
+    records = []
+    for _, row in df_hp_tuning.iterrows():
+        config = f"xo={row['xo_prob']}, mut={row['mut_prob']}, swaps={row['n_swaps']}, tournament_size={row['tournament_size']}"
+        final_idx = len(row['fitness_history'][0]) - 1
+        for run_id, run in enumerate(row['fitness_history']):
+            records.append({
+                'Configuration': config,
+                'Fitness': run[final_idx],
+                'n_swaps': int(row['n_swaps']),
+                'tournament_size': int(row['tournament_size']),
+            })
+
+    df_final = pd.DataFrame(records)
+
+    # Define complexity tiers
+    def classify(value, low, high):
+        if value <= low:
+            return 'Low'
+        elif value >= high:
+            return 'High'
+        else:
+            return 'Medium'
+
+    df_final['Swap Tier'] = df_final['n_swaps'].apply(lambda x: classify(x, 2, 5))
+    df_final['Tournament Tier'] = df_final['tournament_size'].apply(lambda x: classify(x, 2, 5))
+    df_final['Complexity'] = df_final['Swap Tier'] + '-' + df_final['Tournament Tier']
+
+    # Set palette for complexity
+    complexity_palette = {
+        'Low-Low': '#1a9850',
+        'Low-Medium': '#66bd63',
+        'Low-High': '#a6d96a',
+        'Medium-Low': '#fdae61',
+        'Medium-Medium': '#f46d43',
+        'Medium-High': '#d73027',
+        'High-Low': '#4575b4',
+        'High-Medium': '#74add1',
+        'High-High': '#abd9e9'
+    }
+
+    # Map color to each configuration
+    config_to_complexity = df_final.groupby("Configuration")["Complexity"].first().to_dict()
+    median_order = df_final.groupby("Configuration")["Fitness"].median().sort_values(ascending=False)
+    df_final['Configuration'] = pd.Categorical(df_final['Configuration'], categories=median_order.index, ordered=True)
+    config_colors = {cfg: complexity_palette.get(config_to_complexity[cfg], '#999999') for cfg in median_order.index}
+
+    # Plot
+    height = max(6, 0.4 * len(median_order))
+    plt.figure(figsize=(12, height))
+    ax = sns.boxplot(
+        y='Configuration',
+        x='Fitness',
+        data=df_final,
+        palette=[config_colors[cfg] for cfg in median_order.index],
+        order=median_order.index,
+        linewidth=1.5,
+        fliersize=3,
+        width=0.6,
+        orient='h'
+    )
+
+    # Title and styling
+    title = "Final Generation Fitness per Run"
+    if title_suffix:
+        title += f" ({title_suffix})"
+
+    plt.title(title, fontsize=15, weight='bold')
+    plt.xlabel("Final Generation Fitness", fontsize=12)
+    plt.ylabel("Configuration", fontsize=12)
+    plt.grid(axis='x', linestyle='--', alpha=0.5)
+    sns.despine()
+    plt.tight_layout()
+
+    # Legend for complexity
+    handles = [plt.Line2D([0], [0], marker='s', color='w', label=key, markersize=10, markerfacecolor=val)
+               for key, val in complexity_palette.items()]
+    ax.legend(handles=handles, title='Complexity Tier', loc='center left', bbox_to_anchor=(1, 0.5))
+
+    plt.show()
+

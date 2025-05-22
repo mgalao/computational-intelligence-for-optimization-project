@@ -525,3 +525,120 @@ def plot_fine_tune(df_hp_tuning, title_suffix=''):
 
     plt.show()
 
+
+def plot_final_fitness_adaptive_ga(df_adaptive_ga, title='Final Generation Fitness per Configuration'):
+    # Extract final generation (last row) and reshape
+    last_generation = df_adaptive_ga.tail(1).T
+    last_generation.columns = ["Fitness"]
+    last_generation["Configuration"] = last_generation.index.str.replace(r"\.\d+$", "", regex=True)
+
+    # Sort configurations by median
+    medians = last_generation.groupby("Configuration")["Fitness"].median().sort_values(ascending=False)
+    last_generation["Configuration"] = pd.Categorical(last_generation["Configuration"], categories=medians.index, ordered=True)
+
+    # Flat list of colors inspired by your palettes
+    palette = [
+        "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#ff7f00", "#993404",
+        "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+        "#49006a", "#7a0177", "#ae017e", "#ce1256", "#df65b0", "#88419d"
+    ]
+
+    # Map colors to each configuration (cyclically if needed)
+    unique_configs = medians.index.tolist()
+    config_colors = {config: palette[i % len(palette)] for i, config in enumerate(unique_configs)}
+
+    # Plot
+    height = max(6, 0.45 * len(medians))
+    plt.figure(figsize=(14, height))
+
+    sns.boxplot(
+        data=last_generation,
+        y="Configuration",
+        x="Fitness",
+        palette=config_colors,
+        linewidth=2,
+        fliersize=3,
+        width=0.6,
+        orient='h',
+        showmeans=False
+    )
+
+    plt.title(title, fontsize=16, weight='bold')
+    plt.xlabel("Final Generation Fitness", fontsize=13)
+    plt.ylabel("Configuration", fontsize=13)
+    plt.grid(axis='x', linestyle='--', alpha=0.5)
+    sns.despine(left=True, bottom=True)
+    plt.tight_layout()
+    plt.show()
+
+def plot_median_fitness_over_generations(fitness_histories, title="Median Fitness per Generation across Configurations"):
+    """
+    Plots median fitness over generations for each configuration/scenario.
+
+    """
+    plt.figure(figsize=(12, 6))
+    palette = [
+        "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#ff7f00", "#993404",
+        "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+        "#49006a", "#7a0177", "#ae017e", "#ce1256", "#df65b0", "#88419d"
+    ]
+    color_map = {name: palette[i % len(palette)] for i, name in enumerate(fitness_histories.keys())}
+
+    for name, df in fitness_histories.items():
+        median_fitness = df.median(axis=1)
+        plt.plot(median_fitness, label=name, linewidth=2, color=color_map[name])
+
+    plt.xlabel("Generation", fontsize=12)
+    plt.ylabel("Median Fitness", fontsize=12)
+    plt.title(title, fontsize=14, weight='bold')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title="Configuration")
+    plt.grid(True, linestyle="--", alpha=0.5)
+    plt.tight_layout()
+    plt.show()
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def plot_median_fitness_over_generations(df_adaptive_ga, title="Median Fitness per Generation Across Configurations"):
+    """
+    Plots the median fitness per generation for each configuration.
+    """
+
+    df_clean = df_adaptive_ga.copy()
+    df_clean.columns = df_clean.columns.str.replace(r"\.\d+$", "", regex=True)
+
+    # Group by configuration name and compute median across runs
+    grouped = df_clean.groupby(axis=1, level=0)
+    median_per_config = grouped.median()
+
+    # Sort by final generation fitness (descending)
+    final_medians = median_per_config.iloc[-1].sort_values(ascending=False)
+    median_per_config = median_per_config[final_medians.index]
+
+
+    palette = [
+        "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#ff7f00", "#993404",
+        "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+        "#49006a", "#7a0177", "#ae017e", "#ce1256", "#df65b0", "#88419d"
+    ]
+
+    color_map = {config: palette[i % len(palette)] for i, config in enumerate(median_per_config.columns)}
+
+    # Plot
+    plt.figure(figsize=(14, 6))
+    for config in median_per_config.columns:
+        plt.plot(median_per_config.index, median_per_config[config], label=config,
+                 color=color_map[config], linewidth=2)
+
+    plt.title(title, fontsize=14, weight='bold')
+    plt.xlabel("Generation", fontsize=12)
+    plt.ylabel("Median Fitness", fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.legend(title="Configuration", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.show()
+
+
+
+

@@ -80,6 +80,9 @@ def genetic_algorithm(
         params (dict, optional): Dictionary with keys 'n_swaps', 'max_swaps', 'tournament_size', and 'min_tournament', used when adaptation is enabled.
         stability_window (int, optional): Number of generations over which fitness stabilization is evaluated. Defaults to 5.
         stability_epsilon (float, optional): Threshold for standard deviation of recent fitness values to trigger adaptation. Defaults to 1e-3.
+        diversify_on_plateau (bool, optional): If True, injects random diversity into the population when a fitness plateau is detected 
+                                               and adaptation is disabled. This can help escape local optima and maintain diversity. Defaults to False.
+
 
     Returns:
         Tuple[List[float], Individual]: A tuple containing the list of best fitness values across generations 
@@ -149,6 +152,12 @@ def genetic_algorithm(
 
         if verbose_ga in ("minimal", "full", True):
             print(f'Best fitness: {best_fitness:.4f}')
+
+        if diversify_on_plateau and gen > stability_window and adapt_on_stable==False:
+            if verbose_ga in ("minimal", "full", True):
+                print("injecting diversity...")
+            
+            diversify_population(population)
 
         # EXTRA: Adaptation
         if adapt_on_stable and gen > stability_window:

@@ -8,9 +8,7 @@ from utils import *
 
 crossover_operators = [pmx_crossover, fitness_based_slot_crossover]
 mutation_operators = [n_swap_mutation, scramble_mutation, prime_slot_swap_mutation, preserve_best_slots_mutation]
-selection_methods = [tournament_selection]
-
-# selection_methods = [fitness_proportionate_selection, ranking_selection, tournament_selection]
+selection_methods = [fitness_proportionate_selection, ranking_selection, tournament_selection]
 
 # All combinations of crossover and mutation operators
 configurations= list(product(crossover_operators, mutation_operators, selection_methods))

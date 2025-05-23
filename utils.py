@@ -30,7 +30,7 @@ from colorsys import hls_to_rgb
 
 def plot_fitness(fitness_dfs, title_suffix=""):
 
-    # Each selection method has a specifi color to be easier to distinguis
+    # Each selection method has a specific color to be easier to distinguish
     method_palettes = {
         'ranking': [
             "#49006a", "#7a0177", "#ae017e",
@@ -153,7 +153,6 @@ def plot_final_fitness_boxplots(fitness_dfs, title_suffix=''):
         ]
     }
 
-    from collections import defaultdict
     method_color_index = defaultdict(int)
     config_colors = {}
 
@@ -596,10 +595,6 @@ def plot_median_fitness_over_generations(fitness_histories, title="Median Fitnes
     plt.tight_layout()
     plt.show()
 
-import pandas as pd
-import matplotlib.pyplot as plt
-
-
 def plot_median_fitness_over_generations(df_adaptive_ga, title="Median Fitness per Generation Across Configurations"):
     """
     Plots the median fitness per generation for each configuration.
@@ -638,7 +633,3 @@ def plot_median_fitness_over_generations(df_adaptive_ga, title="Median Fitness p
     plt.legend(title="Configuration", bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
     plt.show()
-
-
-
-

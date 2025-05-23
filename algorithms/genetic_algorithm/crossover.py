@@ -29,6 +29,7 @@ def pmx_crossover(
     Args:
         p1: First parent for crossover (Individual).
         p2: Second parent for crossover (Individual).
+        verbose: If True, prints detailed steps.
 
     Returns:
         offspring1: First offspring resulting from the crossover (Individual).

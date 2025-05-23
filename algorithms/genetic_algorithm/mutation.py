@@ -25,6 +25,7 @@ def n_swap_mutation(
         individual (Individual): The individual solution.
         mut_prob (float): Probability of mutation.
         n_swaps (int): Number of swaps to perform.
+        verbose: If True, prints detailed steps.
 
     Returns:
         list of lists: Mutated representation.
@@ -83,7 +84,8 @@ def scramble_mutation(
     Args:
         individual (Individual): The individual solution.
         mut_prob (float): Probability of mutation.
-        segment_length (int): Length of the segment to scramble.
+        max_segment_length (int): Maximum length of the segment to scramble.
+        verbose: If True, prints detailed steps.
 
     Returns:
         list of lists: Mutated matrix representation.
@@ -190,6 +192,7 @@ def preserve_best_slots_mutation(
         individual (Individual): The individual solution.
         mut_prob (float): Probability of mutation.
         keep_ratio (float): Fraction of the best-performing slots (rows) to preserve (value between 0 and 1).
+        verbose: If True, prints detailed steps.
 
     Returns:
         Individual: The mutated individual with updated representation.

@@ -28,6 +28,7 @@ import networkx as nx
 import matplotlib.colors as mcolors
 from colorsys import hls_to_rgb
 
+
 def plot_fitness(fitness_dfs, title_suffix=""):
 
     # Each selection method has a specific color to be easier to distinguish
@@ -125,6 +126,95 @@ def plot_fitness(fitness_dfs, title_suffix=""):
 
     fig.show()
 
+def plot_fitness_hp(fitness_dfs_hp, title_suffix=""):
+
+    method_palettes = {
+        'ranking': [
+            "#49006a", "#7a0177", "#ae017e",
+            "#67001f", "#980043", "#ce1256",
+            "#df65b0", "#88419d"
+        ],
+        'fitness_proportionate': [
+            "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+            "#377eb8", "#02818a"
+        ],
+        'tournament': [
+            "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#d73027", "#f46d43",
+            "#ff7f00", "#993404"
+        ]
+    }
+
+    method_color_index = defaultdict(int)
+
+    # List of methods to cycle through for color diversity
+    methods_cycle = ['ranking', 'fitness_proportionate', 'tournament']
+
+    sorted_items = sorted(
+        fitness_dfs_hp.items(),
+        key=lambda x: x[1].mean(axis=0).iloc[-1],
+        reverse=True
+    )
+
+    fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=("Mean Fitness", "Median Fitness"),
+        shared_yaxes=True,
+        horizontal_spacing=0.1
+    )
+
+    for i, (config_name, df) in enumerate(sorted_items):
+        mean_fitness = df.mean(axis=0)
+        median_fitness = df.median(axis=0)
+
+        # Rotate through the methods to assign colors evenly
+        method = methods_cycle[i % len(methods_cycle)]
+        color_list = method_palettes[method]
+        color = color_list[method_color_index[method] % len(color_list)]
+        method_color_index[method] += 1
+
+        fig.add_trace(go.Scatter(
+            x=mean_fitness.index,
+            y=mean_fitness.values,
+            mode='lines',
+            name=config_name,
+            legendgroup=config_name,
+            showlegend=True,
+            line=dict(color=color),
+            hovertemplate=f"{config_name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=1)
+
+        fig.add_trace(go.Scatter(
+            x=median_fitness.index,
+            y=median_fitness.values,
+            mode='lines',
+            name=config_name,
+            legendgroup=config_name,
+            showlegend=False,
+            line=dict(color=color),
+            hovertemplate=f"{config_name}<br>Gen: %{{x}}<br>Fitness: %{{y:.4f}}<extra></extra>"
+        ), row=1, col=2)
+
+    fig.update_layout(
+        title_text=f"Fitness Across Generations - {title_suffix}",
+        template="simple_white",
+        height=700,
+        width=1800,
+        margin=dict(l=40, r=300, t=60, b=60),
+        legend=dict(
+            title="Configurations",
+            orientation="v",
+            y=1,
+            x=1.02,
+            font=dict(size=11)
+        )
+    )
+
+    fig.update_xaxes(title_text="Generation", row=1, col=1)
+    fig.update_xaxes(title_text="Generation", row=1, col=2)
+    fig.update_yaxes(title_text="Fitness", row=1, col=1)
+
+    fig.show()
+
 def plot_final_fitness_boxplots(fitness_dfs, title_suffix=''):
     data = []
     for config_label, df in fitness_dfs.items():
@@ -182,6 +272,75 @@ def plot_final_fitness_boxplots(fitness_dfs, title_suffix=''):
     )
 
     title = 'Final Generation Fitness per Run'
+    if title_suffix:
+        title += f' ({title_suffix})'
+    plt.title(title, fontsize=16, weight='bold')
+    plt.xlabel('Final Generation Fitness', fontsize=13)
+    plt.ylabel('Configuration', fontsize=13)
+
+    # Styling
+    plt.grid(True, axis='x', linestyle='--', alpha=0.5)
+    sns.despine(left=True, bottom=True)
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_final_fitness_boxplots_hp(fitness_dfs_hp, title_suffix=''):
+    data = []
+    for config_label, df in fitness_dfs_hp.items():
+        final_gen_fitness = df.iloc[:, -1].values  # final generation fitness
+        for value in final_gen_fitness:
+            data.append({'Fitness': value, 'Configuration': config_label})
+    df_long = pd.DataFrame(data)
+
+    medians = df_long.groupby('Configuration')['Fitness'].median().sort_values(ascending=False)
+    df_long['Configuration'] = pd.Categorical(df_long['Configuration'], categories=medians.index, ordered=True)
+
+    # Same palettes as before
+    method_palettes = {
+        'ranking': [
+            "#49006a", "#7a0177", "#ae017e",
+            "#67001f", "#980043", "#ce1256",
+            "#df65b0", "#88419d"
+        ],
+        'fitness_proportionate': [
+            "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+            "#377eb8", "#02818a"
+        ],
+        'tournament': [
+            "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#d73027", "#f46d43",
+            "#ff7f00", "#993404"
+        ]
+    }
+
+    method_color_index = defaultdict(int)
+    config_colors = {}
+
+    # We'll cycle through the three methods to assign diverse colors evenly:
+    methods_cycle = ['ranking', 'fitness_proportionate', 'tournament']
+
+    for i, config in enumerate(medians.index):
+        method = methods_cycle[i % len(methods_cycle)]
+        palette = method_palettes[method]
+        color = palette[method_color_index[method] % len(palette)]
+        config_colors[config] = color
+        method_color_index[method] += 1
+
+    height = max(6, 0.4 * len(medians))
+    plt.figure(figsize=(14, height))
+    
+    ax = sns.boxplot(
+        y='Configuration',
+        x='Fitness',
+        data=df_long,
+        palette=config_colors,
+        linewidth=2,
+        fliersize=3,
+        width=0.6,
+        orient='h'
+    )
+
+    title = 'Final Generation Fitness per Run (HP Tuning)'
     if title_suffix:
         title += f' ({title_suffix})'
     plt.title(title, fontsize=16, weight='bold')
@@ -438,92 +597,119 @@ def plot_statistical_distance_graph(best_configs, final_gen_fitness, p_values_df
     fig.show()
 
 
-def plot_fine_tune(df_hp_tuning, title_suffix=''):
-    # Parse JSON strings if needed
-    if isinstance(df_hp_tuning['fitness_history'].iloc[0], str):
-        df_hp_tuning['fitness_history'] = df_hp_tuning['fitness_history'].apply(json.loads)
+def plot_statistical_distance_graph_ph(best_configs, final_gen_fitness, p_values_df):
 
-    # Build long-form DataFrame
-    records = []
-    for _, row in df_hp_tuning.iterrows():
-        config = f"xo={row['xo_prob']}, mut={row['mut_prob']}, swaps={row['n_swaps']}, tournament_size={row['tournament_size']}"
-        final_idx = len(row['fitness_history'][0]) - 1
-        for run_id, run in enumerate(row['fitness_history']):
-            records.append({
-                'Configuration': config,
-                'Fitness': run[final_idx],
-                'n_swaps': int(row['n_swaps']),
-                'tournament_size': int(row['tournament_size']),
-            })
+    # Mean fitness
+    mean_fitness = {cfg: np.mean(final_gen_fitness[cfg]) for cfg in best_configs}
 
-    df_final = pd.DataFrame(records)
-
-    # Define complexity tiers
-    def classify(value, low, high):
-        if value <= low:
-            return 'Low'
-        elif value >= high:
-            return 'High'
-        else:
-            return 'Medium'
-
-    df_final['Swap Tier'] = df_final['n_swaps'].apply(lambda x: classify(x, 2, 5))
-    df_final['Tournament Tier'] = df_final['tournament_size'].apply(lambda x: classify(x, 2, 5))
-    df_final['Complexity'] = df_final['Swap Tier'] + '-' + df_final['Tournament Tier']
-
-    # Set palette for complexity
-    complexity_palette = {
-        'Low-Low': '#1a9850',
-        'Low-Medium': '#66bd63',
-        'Low-High': '#a6d96a',
-        'Medium-Low': '#fdae61',
-        'Medium-Medium': '#f46d43',
-        'Medium-High': '#d73027',
-        'High-Low': '#4575b4',
-        'High-Medium': '#74add1',
-        'High-High': '#abd9e9'
+    # Explicit palettes by selection method
+    method_palettes = {
+        'ranking': [
+            "#49006a", "#7a0177", "#ae017e",
+            "#67001f", "#980043", "#ce1256",
+            "#df65b0", "#88419d"
+        ],
+        'fitness_proportionate': [
+            "#023858", "#045a8d", "#0570b0", "#3690c0", "#41b6c4", "#253494",
+            "#377eb8", "#02818a"
+        ],
+        'tournament': [
+            "#67000d", "#cb181d", "#ef3b2c", "#fc4e2a", "#d73027", "#f46d43",
+            "#ff7f00", "#993404"
+        ]
     }
 
-    # Map color to each configuration
-    config_to_complexity = df_final.groupby("Configuration")["Complexity"].first().to_dict()
-    median_order = df_final.groupby("Configuration")["Fitness"].median().sort_values(ascending=False)
-    df_final['Configuration'] = pd.Categorical(df_final['Configuration'], categories=median_order.index, ordered=True)
-    config_colors = {cfg: complexity_palette.get(config_to_complexity[cfg], '#999999') for cfg in median_order.index}
+    # Infer selection method from config string
+    def get_selection_method(cfg):
+        if 'ranking' in cfg:
+            return 'ranking'
+        elif 'fitness' in cfg:
+            return 'fitness_proportionate'
+        elif 'tournament' in cfg or 'tour' in cfg:
+            return 'tournament'
+        else:
+            return 'tournament'  # fallback
 
-    # Plot
-    height = max(6, 0.4 * len(median_order))
-    plt.figure(figsize=(12, height))
-    ax = sns.boxplot(
-        y='Configuration',
-        x='Fitness',
-        data=df_final,
-        palette=[config_colors[cfg] for cfg in median_order.index],
-        order=median_order.index,
-        linewidth=1.5,
-        fliersize=3,
-        width=0.6,
-        orient='h'
+    # Group configs and assign colors
+    grouped_configs = defaultdict(list)
+    for cfg in best_configs:
+        method = get_selection_method(cfg)
+        grouped_configs[method].append(cfg)
+
+    method_color_index = defaultdict(int)
+    color_map = {}
+    for method, cfgs in grouped_configs.items():
+        palette = method_palettes[method]
+        for cfg in sorted(cfgs):
+            color_map[cfg] = palette[method_color_index[method] % len(palette)]
+            method_color_index[method] += 1
+
+    # Sorted configs for consistent layout
+    sorted_configs = [cfg for method in sorted(grouped_configs) for cfg in sorted(grouped_configs[method])]
+
+    # Build graph: edges weighted by 1 - p-value
+    G = nx.Graph()
+    for cfg1, cfg2 in combinations(best_configs, 2):
+        p = p_values_df.loc[cfg1, cfg2]
+        if not np.isnan(p):
+            G.add_edge(cfg1, cfg2, weight=1 - p)
+
+    pos = nx.spring_layout(G, weight='weight', seed=42)
+
+    # Edges
+    edge_x, edge_y = [], []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=1, color='lightgray'),
+        hoverinfo='none',
+        mode='lines',
+        showlegend=False
     )
 
-    # Title and styling
-    title = "Final Generation Fitness per Run"
-    if title_suffix:
-        title += f" ({title_suffix})"
+    # Nodes
+    node_traces = []
+    for cfg in sorted_configs:
+        if cfg not in G.nodes:
+            continue
+        x, y = pos[cfg]
+        method = get_selection_method(cfg)
+        node_traces.append(go.Scatter(
+            x=[x], y=[y],
+            mode='markers',
+            marker=dict(size=22, color=color_map[cfg], line=dict(color='black', width=1)),
+            hovertemplate=f"{cfg}<br>Mean Final Fitness: {mean_fitness[cfg]:.4f}<extra></extra>",
+            name=cfg,
+            legendgroup=method,
+            showlegend=True
+        ))
 
-    plt.title(title, fontsize=15, weight='bold')
-    plt.xlabel("Final Generation Fitness", fontsize=12)
-    plt.ylabel("Configuration", fontsize=12)
-    plt.grid(axis='x', linestyle='--', alpha=0.5)
-    sns.despine()
-    plt.tight_layout()
-
-    # Legend for complexity
-    handles = [plt.Line2D([0], [0], marker='s', color='w', label=key, markersize=10, markerfacecolor=val)
-               for key, val in complexity_palette.items()]
-    ax.legend(handles=handles, title='Complexity Tier', loc='center left', bbox_to_anchor=(1, 0.5))
-
-    plt.show()
-
+    # Layout
+    fig = go.Figure(data=[edge_trace] + node_traces)
+    fig.update_layout(
+        title="Statistical Distance Between Configurations (Node Distance ∝ Dissimilarity)",
+        title_font_size=16,
+        showlegend=True,
+        legend_title="Configurations Grouped by Selection Method",
+        legend=dict(
+            font=dict(size=10),
+            traceorder='normal',
+            itemsizing='trace',
+            x=1.02,
+            y=1,
+            bgcolor='rgba(255,255,255,0)',
+        ),
+        margin=dict(l=40, r=250, t=60, b=40),
+        plot_bgcolor='white',
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+    )
+    fig.show()
 
 def plot_final_fitness_adaptive_ga(df_adaptive_ga, title='Final Generation Fitness per Configuration'):
     # Extract final generation (last row) and reshape

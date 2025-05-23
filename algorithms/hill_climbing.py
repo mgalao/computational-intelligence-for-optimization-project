@@ -1,8 +1,9 @@
+"""
+This module implements the Hill Climbing optimization algorithm.
+"""
+
 from algorithms.genetic_algorithm.entities import Solution
 from utils import *
-
-
-# Algorithm defined in class
 
 def hill_climbing(initial_solution: Solution, maximization=True, max_iter=99999, verbose=False):
     """

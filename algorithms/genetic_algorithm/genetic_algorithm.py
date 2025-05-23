@@ -46,8 +46,6 @@ def diversify_population(population, percentage=0.5):
         )
         individuals[-i] = new_individual
 
-
-
 def genetic_algorithm(
     initial_population: 'Population',
     max_gen: int,
@@ -159,18 +157,14 @@ def genetic_algorithm(
             
             diversify_population(population)
 
-        # EXTRA: Adaptation
+        # Adaptation
         if adapt_on_stable and gen > stability_window:
             recent = fitness_history[-stability_window:]
             if np.std(recent) < stability_epsilon and (gen - last_adaptation_gen) >= adaptation_cooldown:
                 if verbose_ga in ("minimal", "full", True):
                     print("Fitness plateau detected — adapting parameters...")
 
-                # xo_prob = min(1.0, xo_prob + 0.025)
-                # mut_prob = min(1.0, mut_prob + 0.025)
                 if verbose_ga in ("minimal", "full", True):
-                    # print(f"adapting probabilities... xo_prob to {xo_prob:.2f}, mut_prob to {mut_prob:.2f}")
-                    # print(f" xo_prob to {xo_prob:.2f}, mut_prob to {mut_prob:.2f}")
                     print("adapting parameters...")
 
                 for key in params.get("adapt_keys", []):
@@ -202,6 +196,7 @@ def genetic_algorithm(
 
                 last_adaptation_gen = gen
 
+                # Reset adaptation cooldown
                 if diversify_on_plateau:
                     if verbose_ga in ("minimal", "full", True):
                         print("injecting diversity...")

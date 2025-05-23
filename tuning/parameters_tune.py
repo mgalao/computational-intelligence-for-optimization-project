@@ -1,7 +1,7 @@
 from algorithms.genetic_algorithm.entities import Population
-from algorithms.genetic_algorithm.selection import (fitness_proportionate_selection, ranking_selection, tournament_selection)
-from algorithms.genetic_algorithm.crossover import (pmx_crossover, fitness_based_slot_crossover)
-from algorithms.genetic_algorithm.mutation import (n_swap_mutation,scramble_mutation,prime_slot_swap_mutation,preserve_best_slots_mutation)
+from algorithms.genetic_algorithm.selection import (tournament_selection)
+from algorithms.genetic_algorithm.crossover import (pmx_crossover)
+from algorithms.genetic_algorithm.mutation import (n_swap_mutation)
 from algorithms.genetic_algorithm.genetic_algorithm import genetic_algorithm
 
 from utils import *

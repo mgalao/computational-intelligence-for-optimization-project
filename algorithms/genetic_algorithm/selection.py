@@ -45,22 +45,56 @@ def fitness_proportionate_selection(
     return deepcopy(selected_indiv)
 
 def ranking_selection(population):
+    """
+    Selects an individual from the population using ranking-based selection.
+
+    Individuals are sorted by fitness, and selection probabilities are assigned
+    according to their rank (not raw fitness), giving higher-ranked individuals
+    a greater chance of being selected.
+
+    Args:
+        population (Population): The population from which to select an individual.
+
+    Returns:
+        Individual: A deep copy of the selected individual.
+    """
+
+    # Sort individuals by descending fitness
     sorted_population = sorted(population, key=lambda indiv: indiv.fitness(), reverse=True)
 
+    # Assign ranks (1 to N) and compute corresponding weights
     max_rank = len(population)
     ranking_position = range(1, max_rank + 1)
-
     raw_weights = [max_rank - pos + 1 for pos in ranking_position]
 
     total = sum(raw_weights)
     probabilities = [w / total for w in raw_weights]
 
+    # Randomly select one individual according to the rank-based probabilities
     selected_indiv = random.choices(sorted_population, weights=probabilities, k=1)[0]
+
     return deepcopy(selected_indiv)
 
 def tournament_selection(population, tournament_size=4):
+    """
+    Selects an individual from the population using tournament selection.
 
+    A random subset of individuals is sampled, and the one with the highest
+    fitness is selected. This method introduces selection pressure based on
+    the size of the tournament.
+
+    Args:
+        population (Population): The population from which to select an individual.
+        tournament_size (int, optional): Number of individuals competing in the tournament. Defaults to 4.
+
+    Returns:
+        Individual: A deep copy of the selected individual.
+    """
+
+    # Randomly sample a subset of the population
     tournament_population = random.sample(list(population), tournament_size)
+
+    # Select the best individual in the tournament
     best_indiv = max(tournament_population, key=lambda indiv: indiv.fitness())
 
     return deepcopy(best_indiv)
